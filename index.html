@@ -3375,22 +3375,51 @@ function renderFilterModal() {
     activeByGroup[group] = tags.filter(t => activeTags.has(t));
   }
 
-  function passesTagFilters(r, overrideGroup, overrideTag) {
+  // Helper: check if recipe matches standard drinks bucket
+  function matchesStdBucket(r, v) {
+    const sd = r.standardDrinks;
+    if (sd == null) return false;
+    if (v==='sd0' && sd >= 0 && sd <= 1) return true;
+    if (v==='sd1' && sd > 1 && sd <= 2) return true;
+    if (v==='sd2' && sd > 2 && sd <= 3) return true;
+    if (v==='sd3' && sd > 3) return true;
+    return false;
+  }
+
+  // Universal "would adding this candidate to the current filters produce ≥1 result?"
+  // Each override param, if set, is treated as if that filter were active alongside all others.
+  function wouldMatchWith(r, opts) {
+    if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
+
+    // Tags — check with optional override for a candidate tag pill
     for (const [group, tags] of Object.entries(TAG_GROUPS)) {
       const groupActive = activeByGroup[group] || [];
-      if (group === overrideGroup) {
-        const needed = [...groupActive, overrideTag];
+      if (opts.tagGroup === group) {
+        const needed = [...groupActive, opts.tagVal];
         if (!needed.some(t => hasTag(r, t))) return false;
       } else {
         if (groupActive.length > 0 && !groupActive.some(t => hasTag(r, t))) return false;
       }
     }
-    return true;
-  }
 
-  function wouldMatch(r, opts) {
-    if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
-    if (!passesTagFilters(r, opts.tagGroup, opts.tagVal)) return false;
+    // Spirit — check with optional candidate
+    const spiritCheck = opts.candidateSpirit ? new Set([...activeSpirits, opts.candidateSpirit]) : activeSpirits;
+    if (spiritCheck.size > 0 && (!r.spirit || !spiritCheck.has(r.spirit))) return false;
+
+    // Standard drinks — check with optional candidate
+    const sdCheck = opts.candidateStd ? new Set([...activeStdDrinks, opts.candidateStd]) : activeStdDrinks;
+    if (sdCheck.size > 0) {
+      if (![...sdCheck].some(v => matchesStdBucket(r, v))) return false;
+    }
+
+    // Technique — check with optional candidate
+    const techCheck = opts.candidateTech ? new Set([...activeTechniques, opts.candidateTech]) : activeTechniques;
+    if (techCheck.size > 0 && (!r.technique || !techCheck.has(r.technique))) return false;
+
+    // Glass — check with optional candidate
+    const glassCheck = opts.candidateGlass ? new Set([...activeGlasses, opts.candidateGlass]) : activeGlasses;
+    if (glassCheck.size > 0 && (!r.glass || !glassCheck.has(r.glass))) return false;
+
     return true;
   }
 
@@ -3405,7 +3434,7 @@ function renderFilterModal() {
       <div class="filter-pill-row">
         ${relevant.map(t => {
           const active = activeTags.has(t);
-          const dim = !active && !visibleRecipes.some(r => wouldMatch(r, {tagGroup:group, tagVal:t}));
+          const dim = !active && !visibleRecipes.some(r => wouldMatchWith(r, {tagGroup:group, tagVal:t}));
           return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="toggleFilterTag('${t}')">${t}</span>`;
         }).join('')}
       </div>
@@ -3420,7 +3449,8 @@ function renderFilterModal() {
       <div class="filter-pill-row">
         ${allSpirits.map(s => {
           const active = activeSpirits.has(s);
-          return `<span class="fpill${active?' active':''}" onclick="toggleSpiritFilter('${esc(s)}')">${esc(s)}</span>`;
+          const dim = !active && !visibleRecipes.some(r => wouldMatchWith(r, {candidateSpirit:s}));
+          return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="toggleSpiritFilter('${esc(s)}')">${esc(s)}</span>`;
         }).join('')}
       </div>
     </div>`;
@@ -3430,22 +3460,15 @@ function renderFilterModal() {
   const STD_BUCKETS = [
     ['sd0','0 – 1'], ['sd1','1 – 2'], ['sd2','2 – 3'], ['sd3','3+']
   ];
-  const stdBuckets = STD_BUCKETS.filter(([v]) => visibleRecipes.some(r => {
-    const sd = r.standardDrinks;
-    if (sd == null) return false;
-    if (v==='sd0' && sd >= 0 && sd <= 1) return true;
-    if (v==='sd1' && sd > 1 && sd <= 2) return true;
-    if (v==='sd2' && sd > 2 && sd <= 3) return true;
-    if (v==='sd3' && sd > 3) return true;
-    return false;
-  }));
+  const stdBuckets = STD_BUCKETS.filter(([v]) => visibleRecipes.some(r => matchesStdBucket(r, v)));
   if (stdBuckets.length) {
     html += `<div class="filter-sep"></div><div>
       <div class="filter-group-label">Standard Drinks</div>
       <div class="filter-pill-row">
         ${stdBuckets.map(([v,l]) => {
           const active = activeStdDrinks.has(v);
-          return `<span class="fpill${active?' active':''}" onclick="toggleStdDrinksFilter('${v}')">${l}</span>`;
+          const dim = !active && !visibleRecipes.some(r => wouldMatchWith(r, {candidateStd:v}));
+          return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="toggleStdDrinksFilter('${v}')">${l}</span>`;
         }).join('')}
       </div>
     </div>`;
@@ -3459,7 +3482,8 @@ function renderFilterModal() {
       <div class="filter-pill-row">
         ${allTechniques.map(t => {
           const active = activeTechniques.has(t);
-          return `<span class="fpill${active?' active':''}" onclick="toggleTechniqueFilter('${esc(t)}')">${esc(t)}</span>`;
+          const dim = !active && !visibleRecipes.some(r => wouldMatchWith(r, {candidateTech:t}));
+          return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="toggleTechniqueFilter('${esc(t)}')">${esc(t)}</span>`;
         }).join('')}
       </div>
     </div>`;
@@ -3473,7 +3497,8 @@ function renderFilterModal() {
       <div class="filter-pill-row">
         ${allGlasses.map(g => {
           const active = activeGlasses.has(g);
-          return `<span class="fpill${active?' active':''}" onclick="toggleGlassFilter('${esc(g)}')">${esc(g)}</span>`;
+          const dim = !active && !visibleRecipes.some(r => wouldMatchWith(r, {candidateGlass:g}));
+          return `<span class="fpill${active?' active':''}${dim?' dim':''}" onclick="toggleGlassFilter('${esc(g)}')">${esc(g)}</span>`;
         }).join('')}
       </div>
     </div>`;
