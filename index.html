@@ -2118,12 +2118,12 @@ function _serializeForm() {
     notes:    document.getElementById('f-notes')?.value   || '',
     utensils: getUtensils(),
     tags:     [...formTags],
-    hrs:      getWheelVal('wh-hrs'),
-    mins:     getWheelVal('wh-min'),
-    servesMode,
-    srv:      servesMode === 'range'
-              ? { min: getWheelVal('wh-srv-min'), max: getWheelVal('wh-srv-max') }
-              : getWheelVal('wh-srv'),
+    prep:     getWheelVal('wh-prep'),
+    srv:      getWheelVal('wh-srv'),
+    glass:    document.getElementById('f-glass')?.value   || '',
+    garnish:  document.getElementById('f-garnish')?.value || '',
+    stdDrinks: document.getElementById('f-std-drinks')?.value || '',
+    abv:      document.getElementById('f-abv')?.value     || '',
     scalable: !document.getElementById('scalable-row')?.classList.contains('off'),
     ingHtml:  document.getElementById('ing-builder')?.innerHTML    || '',
     methHtml: document.getElementById('method-builder')?.innerHTML || '',
@@ -2171,16 +2171,12 @@ function applyFormSnapshot(snapshot) {
   renderUtensilPills();
   formTags = [...snapshot.tags];
   renderFormTags();
-  setWheel('wh-hrs', snapshot.hrs);
-  setWheel('wh-min', snapshot.mins);
-  servesMode = snapshot.servesMode;
-  setServesMode(servesMode);
-  if (servesMode === 'range') {
-    setWheel('wh-srv-min', snapshot.srv.min);
-    setWheel('wh-srv-max', snapshot.srv.max);
-  } else {
-    setWheel('wh-srv', snapshot.srv);
-  }
+  setWheel('wh-prep', snapshot.prep || 0);
+  setWheel('wh-srv', snapshot.srv || 1);
+  if (document.getElementById('f-glass'))    document.getElementById('f-glass').value    = snapshot.glass || '';
+  if (document.getElementById('f-garnish'))  document.getElementById('f-garnish').value  = snapshot.garnish || '';
+  if (document.getElementById('f-std-drinks')) document.getElementById('f-std-drinks').value = snapshot.stdDrinks || '';
+  if (document.getElementById('f-abv'))      document.getElementById('f-abv').value      = snapshot.abv || '';
   const row = document.getElementById('scalable-row');
   row.classList.toggle('off', !snapshot.scalable);
   applyScalableUI(snapshot.scalable);
@@ -3700,10 +3696,14 @@ function fmtServes(serves) {
 
 function setServesMode(mode) {
   servesMode = mode;
-  document.getElementById('srv-exact-btn').classList.toggle('active', mode==='exact');
-  document.getElementById('srv-range-btn').classList.toggle('active', mode==='range');
-  document.getElementById('srv-exact-wrap').style.display = mode==='exact' ? '' : 'none';
-  document.getElementById('srv-range-wrap').style.display = mode==='range' ? '' : 'none';
+  const eb = document.getElementById('srv-exact-btn');
+  const rb = document.getElementById('srv-range-btn');
+  const ew = document.getElementById('srv-exact-wrap');
+  const rw = document.getElementById('srv-range-wrap');
+  if (eb) eb.classList.toggle('active', mode==='exact');
+  if (rb) rb.classList.toggle('active', mode==='range');
+  if (ew) ew.style.display = mode==='exact' ? '' : 'none';
+  if (rw) rw.style.display = mode==='range' ? '' : 'none';
 }
 
 // ── MOBILE SEARCH ─────────────────────────────────────────────────────────
@@ -6348,7 +6348,7 @@ function buildWheels() {
       `<div class="witem" style="height:32px"></div>` +
       items.map((item,i)=>`<div class="witem" data-idx="${i}">${item.label}</div>`).join('') +
       `<div class="witem" style="height:32px"></div>`;
-    const def = id==='wh-srv'||id==='wh-srv-max' ? 4 : (id==='wh-srv-min' ? 2 : 0);
+    const def = id==='wh-srv' ? 1 : 0;
     setWheel(id, def);
   });
 }
@@ -6366,7 +6366,7 @@ function setWheel(id, val) {
   document.getElementById(id).dataset.val = val;
 }
 
-function getWheelVal(id) { return parseInt(document.getElementById(id).dataset.val)||0; }
+function getWheelVal(id) { const el = document.getElementById(id); return el ? (parseInt(el.dataset.val)||0) : 0; }
 
 function wheelStart(e, id) {
   e.preventDefault();
@@ -6399,10 +6399,10 @@ function wheelStart(e, id) {
     wheelDrag[id].active = false;
     inner.style.transition = '';
     const newVal = items[wheelDrag[id].live].val;
-    const oldVal = _pendingSnapshot ? _pendingSnapshot.hrs ?? _pendingSnapshot.mins ?? _pendingSnapshot.srv : null;
+    const oldVal = _pendingSnapshot ? _pendingSnapshot.prep ?? _pendingSnapshot.srv : null;
     setWheel(id, newVal);
     // Commit snapshot with descriptive label — _pendingSnapshot set by wheelStart
-    const labelMap = { 'wh-hrs':'Cook time (hours)', 'wh-min':'Cook time (minutes)', 'wh-srv':'Serves', 'wh-srv-min':'Serves (min)', 'wh-srv-max':'Serves (max)' };
+    const labelMap = { 'wh-prep':'Prep time', 'wh-srv':'Makes' };
     captureFormSnapshot(labelMap[id] || 'Edit wheel');
     document.removeEventListener('mousemove', onMove);
     document.removeEventListener('mouseup', onEnd);
