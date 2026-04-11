@@ -315,6 +315,24 @@ header{
 }
 .optional-toggle:hover{border-color:#508050;color:#60a060}
 .optional-toggle.on{background:#1a2a1a;border-color:#508050;color:#60a060}
+/* frozen glass toggle */
+.frozen-toggle{
+  background:none;border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--ink-faint);cursor:pointer;padding:0;width:38px;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .12s;flex-shrink:0;
+}
+.frozen-toggle:hover{border-color:#5090c0;color:#70b8e8}
+.frozen-toggle.on{background:#1a2535;border-color:#5090c0;color:#70b8e8}
+/* search clear button */
+.search-clear{
+  position:absolute;right:0.5rem;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;color:var(--ink-faint);
+  font-size:1rem;line-height:1;padding:2px 4px;display:none;
+  font-family:'Instrument Sans',sans-serif;transition:color .1s;
+}
+.search-clear:hover{color:var(--ink)}
+.search-clear.show{display:block}
 .sub-ing-note-row{display:none;padding:4px 8px}
 .sub-ing-note-row.show{display:block;background:var(--note-bg)}
 .sub-ing-note-inp{width:100%;border:1px solid var(--note-border);border-radius:5px;padding:4px 7px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink-mid);background:var(--cream);outline:none;transition:border-color .15s;box-sizing:border-box}
@@ -1222,7 +1240,8 @@ header{
       <!-- Desktop: inline search bar -->
       <div class="search-wrap">
         <svg class="search-icon" viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-        <input type="text" id="search" placeholder="Search cocktails…" oninput="render()">
+        <input type="text" id="search" placeholder="Search cocktails…" oninput="render();updateSearchClear()">
+        <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
       </div>
       <!-- Mobile: icon button that expands search row below -->
       <button class="search-icon-btn" id="search-icon-btn" onclick="toggleMobileSearch()" title="Search">
@@ -1313,9 +1332,14 @@ header{
       <div class="f2">
         <div class="fg">
           <label>Glass</label>
-          <select id="f-glass" onfocus="preCaptureSnapshot()" onchange="captureFormSnapshot('Change glass')">
-            <option value="">— select —</option>
-          </select>
+          <div style="display:flex;gap:6px;align-items:stretch">
+            <select id="f-glass" style="flex:1" onfocus="preCaptureSnapshot()" onchange="captureFormSnapshot('Change glass')">
+              <option value="">— select —</option>
+            </select>
+            <button type="button" class="frozen-toggle" id="frozen-toggle" onclick="toggleFrozen()" title="Frozen glass">
+              <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/><line x1="2.5" y1="2.5" x2="9.5" y2="9.5"/><line x1="9.5" y1="2.5" x2="2.5" y2="9.5"/></svg>
+            </button>
+          </div>
         </div>
         <div class="fg">
           <label>Garnish</label>
@@ -1324,47 +1348,23 @@ header{
       </div>
 
       <div class="f2">
-        <div class="wheel-panel">
-          <div class="wheel-panel-title">Prep time</div>
-          <div class="wg">
-            <div class="wheel-outer" id="wh-prep" data-val="0" onmousedown="wheelStart(event,'wh-prep')" ontouchstart="wheelStart(event,'wh-prep')">
-              <div class="wfade-t"></div><div class="wline"></div><div class="wfade-b"></div>
-              <div class="wheel-inner" id="wi-prep"></div>
-            </div>
-            <div class="wg-lbl">minutes</div>
-          </div>
-        </div>
-        <div class="wheel-panel">
-          <div class="wheel-panel-title">Makes</div>
-          <div class="wg">
-            <div class="wheel-outer" id="wh-srv" data-val="1" onmousedown="wheelStart(event,'wh-srv')" ontouchstart="wheelStart(event,'wh-srv')">
-              <div class="wfade-t"></div><div class="wline"></div><div class="wfade-b"></div>
-              <div class="wheel-inner" id="wi-srv"></div>
-            </div>
-            <div class="wg-lbl">cocktail(s)</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="f2">
         <div class="fg">
-          <label>Standard drinks <span style="font-weight:300;color:var(--ink-faint);font-size:0.7rem">(AU)</span></label>
-          <input type="number" id="f-std-drinks" placeholder="e.g. 1.4" step="0.1" min="0" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit standard drinks')">
+          <label>Main Spirit</label>
+          <select id="f-spirit" onfocus="preCaptureSnapshot()" onchange="captureFormSnapshot('Change spirit')">
+            <option value="">— none —</option>
+          </select>
         </div>
         <div class="fg">
-          <label>ABV %</label>
-          <input type="number" id="f-abv" placeholder="e.g. 28" step="0.1" min="0" max="100" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit ABV')">
+          <label>Technique</label>
+          <select id="f-technique" onfocus="preCaptureSnapshot()" onchange="captureFormSnapshot('Change technique')">
+            <option value="">— select —</option>
+          </select>
         </div>
       </div>
 
       <div class="fg">
-        <label>Source / URL</label>
-        <input type="text" id="f-source" placeholder="e.g. https://www.example.com/recipe" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit source link')">
-      </div>
-
-      <div class="fg">
-        <label>YouTube reference video</label>
-        <input type="text" id="f-youtube" placeholder="e.g. https://www.youtube.com/watch?v=…" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit YouTube link')">
+        <label>Standard drinks <span style="font-weight:300;color:var(--ink-faint);font-size:0.7rem">(AU)</span></label>
+        <input type="number" id="f-std-drinks" placeholder="e.g. 1.4" step="0.1" min="0" style="max-width:160px" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit standard drinks')">
       </div>
 
       <div style="display:flex;flex-direction:column">
@@ -1375,17 +1375,23 @@ header{
           </label>
           <div class="stoggle-pip"></div>
         </div>
-        <!-- T103: scale options inside same flex column — no fbody gap between them -->
-        <div id="scale-options-row" style="display:flex;gap:1rem;padding:6px 0.7rem 0.5rem;flex-wrap:wrap;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);background:var(--paper)">
-          <span style="font-size:0.72rem;color:var(--ink-faint);align-self:center;min-width:60px">Scales:</span>
-          <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
-            <input type="checkbox" id="scale-half"   checked onchange="updateScaleOptions()"> ½×
+        <!-- scale options inside same flex column -->
+        <div id="scale-options-row" style="display:flex;gap:0.7rem;padding:6px 0.7rem 0.5rem;flex-wrap:wrap;border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);background:var(--paper)">
+          <span style="font-size:0.72rem;color:var(--ink-faint);align-self:center;min-width:50px">Scales:</span>
+          <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--ink-mid);cursor:pointer">
+            <input type="checkbox" id="scale-half" checked onchange="updateScaleOptions()"> ½×
           </label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
+          <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--ink-mid);cursor:pointer">
             <input type="checkbox" id="scale-double" checked onchange="updateScaleOptions()"> 2×
           </label>
-          <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--ink-mid);cursor:pointer">
+          <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--ink-mid);cursor:pointer">
             <input type="checkbox" id="scale-triple" checked onchange="updateScaleOptions()"> 3×
+          </label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--ink-mid);cursor:pointer">
+            <input type="checkbox" id="scale-quadruple" checked onchange="updateScaleOptions()"> 4×
+          </label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;color:var(--ink-mid);cursor:pointer">
+            <input type="checkbox" id="scale-quintuple" checked onchange="updateScaleOptions()"> 5×
           </label>
         </div>
       </div>
@@ -1421,11 +1427,11 @@ header{
       </div>
 
       <div class="fg">
-        <label>Utensils</label>
+        <label>Equipment</label>
         <div id="utensil-list"></div>
         <button class="add-row-btn" style="width:100%" onclick="addUtensil()" type="button">
             <svg viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
-            Utensil
+            Equipment
           </button>
       </div>
       <div class="fg">
@@ -1857,9 +1863,9 @@ const DEFAULT_TAG_GROUPS = {
   'Dietary':    ['Vegan','Dairy Free','Gluten Free','Low Sugar','Low ABV']
 };
 const DEFAULT_UNIT_GROUPS = {
-  'Volume':       ['ml','oz','cl','dash','barspoon','tsp','tbsp','cup','L'],
+  'Volume':       ['ml','oz','tsp','tbsp','cup','L'],
   'Mass':         ['g','kg'],
-  'Custom units': ['whole','piece','slice','sprig','leaf','drop','rinse','float','top']
+  'Custom units': ['whole','piece','slice','sprig','leaf','drop','dash','barspoon','rinse','float','top']
 };
 
 const GLASS_OPTIONS = [
@@ -1868,16 +1874,15 @@ const GLASS_OPTIONS = [
   'Shot','Snifter','Glencairn','Julep Cup','Punch Cup','Other'
 ];
 
+const TECHNIQUE_OPTIONS = ['Shaken','Stirred','Built','Blended','Layered','Muddled','Thrown','Swizzled'];
+
 // Live copies — populated from settings in init()
 let TAG_GROUPS  = JSON.parse(JSON.stringify(DEFAULT_TAG_GROUPS));
 let UNIT_GROUPS = JSON.parse(JSON.stringify(DEFAULT_UNIT_GROUPS));
-let RETIRED_UNITS = []; // unit strings that are retired (hidden from new dropdowns)
-let CUSTOM_TAG_GROUPS = {}; // extra tags added by user per group
+let RETIRED_UNITS = [];
+let CUSTOM_TAG_GROUPS = {};
 
-const WHEEL_ITEMS = {
-  'wh-prep':    Array.from({length:31},(_,i)=>({val:i,label:String(i)})),
-  'wh-srv':     Array.from({length:20},(_,i)=>({val:i+1,label:String(i+1)}))
-};
+const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
 const APP_VERSION = '0.1';
@@ -2113,17 +2118,15 @@ function _serializeForm() {
   _syncInputsToAttributes(document.getElementById('method-builder'));
   return {
     name:     document.getElementById('f-name')?.value    || '',
-    source:   document.getElementById('f-source')?.value  || '',
-    youtube:  document.getElementById('f-youtube')?.value || '',
     notes:    document.getElementById('f-notes')?.value   || '',
     utensils: getUtensils(),
     tags:     [...formTags],
-    prep:     getWheelVal('wh-prep'),
-    srv:      getWheelVal('wh-srv'),
     glass:    document.getElementById('f-glass')?.value   || '',
+    frozen:   document.getElementById('frozen-toggle')?.classList.contains('on') || false,
     garnish:  document.getElementById('f-garnish')?.value || '',
+    spirit:   document.getElementById('f-spirit')?.value  || '',
+    technique: document.getElementById('f-technique')?.value || '',
     stdDrinks: document.getElementById('f-std-drinks')?.value || '',
-    abv:      document.getElementById('f-abv')?.value     || '',
     scalable: !document.getElementById('scalable-row')?.classList.contains('off'),
     ingHtml:  document.getElementById('ing-builder')?.innerHTML    || '',
     methHtml: document.getElementById('method-builder')?.innerHTML || '',
@@ -2164,19 +2167,18 @@ function applyFormSnapshot(snapshot) {
   _formApplying = true;
   _pendingSnapshot = null;
   document.getElementById('f-name').value    = snapshot.name;
-  document.getElementById('f-source').value  = snapshot.source;
-  document.getElementById('f-youtube').value = snapshot.youtube;
   document.getElementById('f-notes').value   = snapshot.notes;
   formUtensils = [...(snapshot.utensils || [])];
   renderUtensilPills();
   formTags = [...snapshot.tags];
   renderFormTags();
-  setWheel('wh-prep', snapshot.prep || 0);
-  setWheel('wh-srv', snapshot.srv || 1);
-  if (document.getElementById('f-glass'))    document.getElementById('f-glass').value    = snapshot.glass || '';
-  if (document.getElementById('f-garnish'))  document.getElementById('f-garnish').value  = snapshot.garnish || '';
+  if (document.getElementById('f-glass'))     document.getElementById('f-glass').value     = snapshot.glass || '';
+  if (document.getElementById('f-garnish'))   document.getElementById('f-garnish').value   = snapshot.garnish || '';
+  if (document.getElementById('f-spirit'))    document.getElementById('f-spirit').value    = snapshot.spirit || '';
+  if (document.getElementById('f-technique')) document.getElementById('f-technique').value = snapshot.technique || '';
   if (document.getElementById('f-std-drinks')) document.getElementById('f-std-drinks').value = snapshot.stdDrinks || '';
-  if (document.getElementById('f-abv'))      document.getElementById('f-abv').value      = snapshot.abv || '';
+  const frozenBtn = document.getElementById('frozen-toggle');
+  if (frozenBtn) frozenBtn.classList.toggle('on', !!snapshot.frozen);
   const row = document.getElementById('scalable-row');
   row.classList.toggle('off', !snapshot.scalable);
   applyScalableUI(snapshot.scalable);
@@ -3627,11 +3629,19 @@ function applyGroupBy() {
 }
 
 function renderGroupModal() {
-  const OPTIONS = [
+  const allOptions = [
     ...Object.keys(TAG_GROUPS),
-    'Cook Time',
-    'Serves'
+    'Glass',
+    'Technique'
   ];
+  // C67: Only show options that have at least one recipe with a value
+  const OPTIONS = allOptions.filter(opt => {
+    if (opt === 'Glass') return recipes.some(r => r.glass);
+    if (opt === 'Technique') return recipes.some(r => r.technique);
+    // Tag group — check if any recipe has a tag from this group
+    const groupTags = TAG_GROUPS[opt] || [];
+    return recipes.some(r => (r.tags||[]).some(t => groupTags.some(gt => gt.toLowerCase() === t.toLowerCase())));
+  });
   const body = document.getElementById('group-modal-body');
   body.innerHTML = OPTIONS.map(opt => `
     <button class="gpill${pendingGroupBy===opt?' active':''}" onclick="selectGroupBy('${opt.replace(/'/g,"\\'")}')">
@@ -3641,33 +3651,17 @@ function renderGroupModal() {
 }
 
 function selectGroupBy(opt) {
-  // T109: only update pending, not live groupBy — Apply commits it
   pendingGroupBy = (pendingGroupBy === opt) ? null : opt;
   renderGroupModal();
 }
 
-// Get the group key(s) for a cocktail under the current groupBy
 function getRecipeGroups(r) {
   if (!groupBy) return [null];
-  if (groupBy === 'Cook Time') {
-    const m = totalMins(r);
-    if (m == null) return ['No time'];
-    if (m < 30)        return ['Under 30 min'];
-    if (m <= 60)       return ['30 – 60 min'];
-    if (m <= 120)      return ['1 – 2 hrs'];
-    return ['Over 2 hrs'];
+  if (groupBy === 'Glass') {
+    return r.glass ? [r.glass] : ['No glass'];
   }
-  if (groupBy === 'Serves') {
-    const sMin = getServesMin(r.serves);
-    const sMax = getServesMax(r.serves);
-    const groups = new Set();
-    if (sMin == null) return ['Unspecified'];
-    // A range can span multiple buckets
-    if (sMin <= 2 && sMax >= 1) groups.add('1 – 2');
-    if (sMin <= 4 && sMax >= 3) groups.add('3 – 4');
-    if (sMin <= 6 && sMax >= 5) groups.add('5 – 6');
-    if (sMax > 6)               groups.add('7+');
-    return groups.size ? [...groups] : ['Unspecified'];
+  if (groupBy === 'Technique') {
+    return r.technique ? [r.technique] : ['Unspecified'];
   }
   // Tag group
   const groupTags = TAG_GROUPS[groupBy] || [];
@@ -3727,6 +3721,29 @@ function toggleMobileSearch() {
 function syncMobileSearch(inp) {
   document.getElementById('search').value = inp.value;
   render();
+  updateSearchClear();
+}
+
+// ── SEARCH CLEAR ─────────────────────────────────────────────────────────
+function clearSearch() {
+  document.getElementById('search').value = '';
+  const mobile = document.getElementById('search-mobile');
+  if (mobile) mobile.value = '';
+  render();
+  updateSearchClear();
+}
+function updateSearchClear() {
+  const btn = document.getElementById('search-clear');
+  if (btn) btn.classList.toggle('show', !!document.getElementById('search').value);
+}
+
+// ── FROZEN GLASS TOGGLE ──────────────────────────────────────────────────
+function toggleFrozen() {
+  const btn = document.getElementById('frozen-toggle');
+  if (!btn) return;
+  preCaptureSnapshot();
+  btn.classList.toggle('on');
+  captureFormSnapshot('Toggle frozen glass');
 }
 
 // ── DRAFT / PUBLISH ───────────────────────────────────────────────────────
@@ -3826,7 +3843,7 @@ function render() {
     const isDraft = r.status === 'draft';
     const metaParts = [];
     if (r.glass) metaParts.push(`<span class="cmeta"><svg viewBox="0 0 14 14" style="width:11px;height:11px"><path d="M4 1h6l-1 7H5L4 1z" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="7" y1="8" x2="7" y2="12" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="1.2"/></svg>${esc(r.glass)}</span>`);
-    if (r.standardDrinks) metaParts.push(`<span class="cmeta">${r.standardDrinks} std</span>`);
+    if (r.spirit) metaParts.push(`<span class="cmeta">${esc(r.spirit)}</span>`);
     return `<div class="rcard${isDraft?' draft':''}" onclick="viewRecipe(${r.id})">
       <div class="card-stripe${isDraft?' draft':''}"></div>
       <div class="card-body">
@@ -4079,33 +4096,35 @@ function renderViewBody(r) {
   const showHalf   = as.half   !== false;
   const showDouble = as.double !== false;
   const showTriple = as.triple !== false;
-  const scaleBarHtml = scalable ? `<div id="view-scale-bar" style="padding:0.6rem 0 0.8rem;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);margin-bottom:1.1rem">
+  const showQuad   = as.quadruple !== false;
+  const showQuint  = as.quintuple !== false;
+  const scaleBarHtml = scalable ? `<div id="view-scale-bar" style="padding:0.6rem 0 0.8rem;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);margin-bottom:1.1rem;flex-wrap:wrap">
     <span style="font-size:0.72rem;color:var(--ink-faint);margin-right:2px">Scale:</span>
     <button class="scale-seg${scaleFactor===1?' active':''}" data-scale="1" onclick="setScale(1)">1×</button>
     ${showHalf   ? `<button class="scale-seg${scaleFactor===0.5?' active':''}" data-scale="0.5" onclick="setScale(0.5)">½×</button>` : ''}
     ${showDouble ? `<button class="scale-seg${scaleFactor===2?' active':''}" data-scale="2" onclick="setScale(2)">2×</button>` : ''}
     ${showTriple ? `<button class="scale-seg${scaleFactor===3?' active':''}" data-scale="3" onclick="setScale(3)">3×</button>` : ''}
+    ${showQuad   ? `<button class="scale-seg${scaleFactor===4?' active':''}" data-scale="4" onclick="setScale(4)">4×</button>` : ''}
+    ${showQuint  ? `<button class="scale-seg${scaleFactor===5?' active':''}" data-scale="5" onclick="setScale(5)">5×</button>` : ''}
   </div>` : '';
 
-  const mins = totalMins(r);
   const metaItems = [];
-  if (r.glass) metaItems.push(`<span class="vmeta"><svg viewBox="0 0 14 14" style="width:12px;height:12px"><path d="M4 1h6l-1 7H5L4 1z" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="7" y1="8" x2="7" y2="12" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="1.2"/></svg><strong>${esc(r.glass)}</strong></span>`);
-  if (mins) metaItems.push(`<span class="vmeta"><svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="5.5"/><polyline points="7,4 7,7 9,9"/></svg><strong>${fmtTime(mins)}</strong></span>`);
-  if (r.serves) {
-    const scaleServes = (v) => v != null ? Math.round(v * scaleFactor * 10) / 10 : null;
-    const scaledServes = scaleServes(r.serves);
-    const srvStr = fmtServes(scaledServes);
-    if (srvStr) metaItems.push(`<span class="vmeta">Makes <strong>${esc(srvStr)}</strong></span>`);
+  if (r.glass) {
+    const frozenStyle = r.glassFrozen ? ' style="color:#70b8e8"' : '';
+    const snowflake = r.glassFrozen ? '<svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="#70b8e8" stroke-width="1.2" stroke-linecap="round" style="margin-left:3px"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="5" x2="9" y2="5"/><line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/></svg>' : '';
+    metaItems.push(`<span class="vmeta"><svg viewBox="0 0 14 14" style="width:12px;height:12px"><path d="M4 1h6l-1 7H5L4 1z" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="7" y1="8" x2="7" y2="12" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="1.2"/></svg><strong${frozenStyle}>${esc(r.glass)}</strong>${snowflake}</span>`);
   }
+  if (r.spirit) metaItems.push(`<span class="vmeta"><strong>${esc(r.spirit)}</strong></span>`);
+  if (r.technique) metaItems.push(`<span class="vmeta">${esc(r.technique)}</span>`);
   if (r.standardDrinks) metaItems.push(`<span class="vmeta"><strong>${r.standardDrinks}</strong> std drinks</span>`);
-  if (r.abv) metaItems.push(`<span class="vmeta"><strong>${r.abv}%</strong> ABV</span>`);
-  if (r.source) metaItems.push(`<span class="vmeta" style="font-size:0.78rem;color:var(--ink-faint)">${esc(r.source)}</span>`);
 
   // Helper: get the override key for the current scaleFactor
   function overrideKey() {
     if (scaleFactor === 0.5) return 'half';
     if (scaleFactor === 2)   return 'double';
     if (scaleFactor === 3)   return 'triple';
+    if (scaleFactor === 4)   return 'quadruple';
+    if (scaleFactor === 5)   return 'quintuple';
     return null;
   }
 
@@ -4337,24 +4356,12 @@ function renderViewBody(r) {
     methHtml = `<div class="view-sec"><div class="vsec-lbl">Method</div>${secs}</div>`;
   }
 
-  const utensilsHtml = (r.utensils?.length)
-    ? `<div class="view-sec"><div class="vsec-lbl">Utensils</div><div style="display:flex;flex-wrap:wrap;gap:6px">${r.utensils.map(u => `<span class="vtag" style="background:var(--paper)">${esc(u)}</span>`).join('')}</div></div>`
+  const equipmentHtml = (r.equipment?.length || r.utensils?.length)
+    ? `<div class="view-sec"><div class="vsec-lbl">Equipment Required</div><div style="display:flex;flex-wrap:wrap;gap:6px">${(r.equipment || r.utensils).map(u => `<span class="vtag" style="background:var(--paper)">${esc(u)}</span>`).join('')}</div></div>`
     : '';
 
   const notesHtml = r.notes
     ? `<div class="view-sec"><div class="vsec-lbl">Notes</div><p style="font-size:0.85rem;line-height:1.7;color:var(--ink-mid)">${esc(r.notes)}</p></div>`
-    : '';
-
-  const ytId = extractYouTubeId(r.youtube);
-  const ytHtml = ytId
-    ? `<div class="view-sec">
-        <div class="vsec-lbl">Reference video</div>
-        <div class="yt-wrap">
-          <iframe src="https://www.youtube.com/embed/${ytId}"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen loading="lazy"></iframe>
-        </div>
-       </div>`
     : '';
 
   // T23: collect unique substitute groups across all ingredients
@@ -4380,7 +4387,7 @@ function renderViewBody(r) {
     ${r.status === 'draft' ? '<div class="draft-pill" style="margin-bottom:0.7rem">Draft</div>' : ''}
     ${r.tags?.length ? `<div class="view-tags">${r.tags.map(t=>`<span class="vtag">${esc(t)}</span>`).join('')}</div>` : ''}
     ${metaItems.length ? `<div class="view-meta">${metaItems.join('')}</div>` : ''}
-    ${ingHtml}${garnishHtml}${methHtml}${utensilsHtml}${notesHtml}${ytHtml}`;
+    ${ingHtml}${garnishHtml}${methHtml}${equipmentHtml}${notesHtml}`;
 }
 
 function activateSubGroup(group, btn) {
@@ -4583,23 +4590,17 @@ function openAdd() { openEdit(null); }
 
 function openEdit(r) {
   editId = r ? r.id : null;
-  // Clear in-form undo/redo stacks for fresh session
   formUndoStack = [];
   formRedoStack = [];
   document.getElementById('form-title').textContent = r ? 'Edit cocktail' : 'Add cocktail';
   document.getElementById('f-name').value   = r?.name   || '';
-  document.getElementById('f-source').value = r?.source || '';
-  document.getElementById('f-youtube').value = r?.youtube || '';
   document.getElementById('f-notes').value  = r?.notes  || '';
 
-  formUtensils = [...(r?.utensils||[])];
+  formUtensils = [...(r?.equipment || r?.utensils || [])];
   renderUtensilPills();
 
   formTags = [...(r?.tags||[])];
   renderFormTags();
-
-  setWheel('wh-prep', r?.prepMinutes ?? 0);
-  setWheel('wh-srv', r?.serves ?? 1);
 
   // Glass dropdown — populate options
   const glassSel = document.getElementById('f-glass');
@@ -4608,21 +4609,40 @@ function openEdit(r) {
   ).join('');
   if (r?.glass) glassSel.value = r.glass;
 
-  // Garnish, standard drinks, ABV
+  // Frozen glass toggle
+  const frozenBtn = document.getElementById('frozen-toggle');
+  if (frozenBtn) frozenBtn.classList.toggle('on', !!r?.glassFrozen);
+
+  // Garnish, standard drinks
   document.getElementById('f-garnish').value = r?.garnish || '';
   document.getElementById('f-std-drinks').value = r?.standardDrinks ?? '';
-  document.getElementById('f-abv').value = r?.abv ?? '';
 
-  // Scalable toggle — default true for new recipes, preserve for edits
-  const scalable = r?.scalable !== false; // undefined/true = scalable
+  // Spirit dropdown — populate from Spirit tag group
+  const spiritSel = document.getElementById('f-spirit');
+  const spiritTags = TAG_GROUPS['Spirit'] || [];
+  spiritSel.innerHTML = '<option value="">— none —</option>' + spiritTags.map(s =>
+    `<option value="${esc(s)}"${r?.spirit === s ? ' selected' : ''}>${esc(s)}</option>`
+  ).join('');
+  if (r?.spirit) spiritSel.value = r.spirit;
+
+  // Technique dropdown
+  const techSel = document.getElementById('f-technique');
+  techSel.innerHTML = '<option value="">— select —</option>' + TECHNIQUE_OPTIONS.map(t =>
+    `<option value="${esc(t)}"${r?.technique === t ? ' selected' : ''}>${esc(t)}</option>`
+  ).join('');
+  if (r?.technique) techSel.value = r.technique;
+
+  // Scalable toggle
+  const scalable = r?.scalable !== false;
   const row = document.getElementById('scalable-row');
   row.classList.toggle('off', !scalable);
-  // Restore allowed scales checkboxes (default all on)
   const as = r?.allowedScales;
   const setChk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = val; };
-  setChk('scale-half',   as ? as.half   !== false : true);
-  setChk('scale-double', as ? as.double !== false : true);
-  setChk('scale-triple', as ? as.triple !== false : true);
+  setChk('scale-half',      as ? as.half      !== false : true);
+  setChk('scale-double',    as ? as.double    !== false : true);
+  setChk('scale-triple',    as ? as.triple    !== false : true);
+  setChk('scale-quadruple', as ? as.quadruple !== false : true);
+  setChk('scale-quintuple', as ? as.quintuple !== false : true);
   applyScalableUI(scalable);
   updateScaleOptions();
 
@@ -4975,21 +4995,22 @@ async function saveRecipe() {
 
   const data = {
     name, tags: formTags.map(toTitleCase),
-    prepMinutes: mins||null, serves:srv,
+    spirit: document.getElementById('f-spirit')?.value || null,
+    technique: document.getElementById('f-technique')?.value || null,
     glass: document.getElementById('f-glass').value || null,
+    glassFrozen: document.getElementById('frozen-toggle')?.classList.contains('on') || false,
     garnish: document.getElementById('f-garnish').value.trim() || null,
     standardDrinks: parseFloat(document.getElementById('f-std-drinks').value) || null,
-    abv: parseFloat(document.getElementById('f-abv').value) || null,
     scalable,
     allowedScales: scalable ? {
-      half:   document.getElementById('scale-half')?.checked ?? true,
-      double: document.getElementById('scale-double')?.checked ?? true,
-      triple: document.getElementById('scale-triple')?.checked ?? true,
+      half:      document.getElementById('scale-half')?.checked ?? true,
+      double:    document.getElementById('scale-double')?.checked ?? true,
+      triple:    document.getElementById('scale-triple')?.checked ?? true,
+      quadruple: document.getElementById('scale-quadruple')?.checked ?? true,
+      quintuple: document.getElementById('scale-quintuple')?.checked ?? true,
     } : null,
-    source:  document.getElementById('f-source').value.trim(),
-    youtube: document.getElementById('f-youtube').value.trim() || null,
     ingredients, method,
-    utensils: getUtensils().length ? getUtensils() : null,
+    equipment: getUtensils().length ? getUtensils() : null,
     notes: document.getElementById('f-notes').value.trim(),
     updated: Date.now()
   };
