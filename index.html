@@ -1361,7 +1361,7 @@ header{
 
       <div class="f2">
         <div class="fg">
-          <label>Main Spirit</label>
+          <label>Base Spirit</label>
           <select id="f-spirit" onfocus="preCaptureSnapshot()" onchange="captureFormSnapshot('Change spirit')">
             <option value="">— none —</option>
           </select>
@@ -1374,9 +1374,23 @@ header{
         </div>
       </div>
 
-      <div class="fg">
-        <label>Standard drinks <span style="font-weight:300;color:var(--ink-faint);font-size:0.7rem">(AU)</span></label>
-        <input type="number" id="f-std-drinks" placeholder="e.g. 1.4" step="0.1" min="0" style="max-width:160px" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit standard drinks')">
+      <div class="f2">
+        <div class="fg">
+          <label>Standard drinks <span style="font-weight:300;color:var(--ink-faint);font-size:0.7rem">(AU)</span></label>
+          <input type="number" id="f-std-drinks" placeholder="e.g. 1.4" step="0.1" min="0" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit standard drinks')">
+        </div>
+        <div class="fg">
+          <label>Ice</label>
+          <div style="display:flex;gap:6px">
+            <select id="f-ice" style="flex:1" onfocus="preCaptureSnapshot()" onchange="handleIceSelect(this)">
+              <option value="">— none —</option>
+            </select>
+            <input type="text" id="f-ice-manual" placeholder="Type ice…" style="display:none;flex:1" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit ice')">
+            <button type="button" class="frozen-toggle" id="ice-back-btn" onclick="switchIceToDropdown()" title="Back to list" style="display:none">
+              <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="4,2 9,6 4,10"/></svg>
+            </button>
+          </div>
+        </div>
       </div>
 
       <div style="display:flex;flex-direction:column">
@@ -1896,6 +1910,8 @@ let RETIRED_GLASSES = [];
 
 const TECHNIQUE_OPTIONS = ['Shaken','Stirred','Built','Blended','Layered','Muddled','Thrown','Swizzled'];
 
+const ICE_OPTIONS = ['Cubed','Crushed','Large Cube','Sphere','Block','Pebble','Shaved'];
+
 // Live copies — populated from settings in init()
 let TAG_GROUPS  = JSON.parse(JSON.stringify(DEFAULT_TAG_GROUPS));
 let UNIT_GROUPS = JSON.parse(JSON.stringify(DEFAULT_UNIT_GROUPS));
@@ -1905,15 +1921,39 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.2';
+const APP_VERSION = '0.3';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
   {
+    version: '0.3',
+    title: 'Phase A — Quick fixes & consistency',
+    userNotes: [
+      'Renamed "Main Spirit" to "Base Spirit" throughout the app',
+      'Ice type field — specify the ice for your cocktail (Large Cube, Crushed, Sphere, etc.)',
+      'Scale override inputs now go up to 5× (matching the scale bar)',
+      'Standard drinks scales with your recipe — shows "4.5 (3 × 1.5) std drinks" when scaling up',
+      'Group by Base Spirit or Standard Drinks in the main view',
+      'Deleting any tag, unit, glass, or garnish now always asks for confirmation first',
+      'Substitute groups updated for cocktails — Low ABV, Virgin/Mocktail, Spicy, Tropical, etc.',
+      'Removed the ingredient prep field (not needed for cocktails)',
+    ],
+    items: [
+      'C90: Main Spirit → Base Spirit rename',
+      'C91: Tags delete confirm prompt even when not in use',
+      'C92: Prep field fully removed from view rendering',
+      'C93: Scale override inputs extended to 5× (quadruple + quintuple)',
+      'C94: Standard drinks scaling — half shows halved, 2×+ shows total (scale × base)',
+      'C95: Base Spirit + Standard Drinks added to group-by options',
+      'C96: Ice type field with dropdown + type manually',
+      'C97: Substitute reason groups updated for cocktail context',
+    ]
+  },
+  {
     version: '0.2',
     title: 'Core features, filters & settings',
     userNotes: [
-      'Main Spirit field — set the base spirit for each cocktail, displayed on recipe cards',
+      'Base Spirit field — set the base spirit for each cocktail, displayed on recipe cards',
       'Technique field — choose Shaken, Stirred, Built, Blended, Layered, Muddled, Thrown, or Swizzled',
       'Frozen glass toggle — mark glasses as frozen with a snowflake indicator',
       'Scaling extended to 5× — make up to 5 cocktails at once',
@@ -1928,7 +1968,7 @@ const CHANGELOG = [
     ],
     items: [
       'C50-C58: Removals — prep field, prep time, serves, ABV, YouTube, source URL, cl unit, dash/barspoon moved to custom',
-      'C62: Main Spirit dropdown populated from Spirit tag group',
+      'C62: Base Spirit dropdown populated from Spirit tag group',
       'C63: Technique dropdown (8 options)',
       'C65: Scale bar extended to 5× with quadruple/quintuple in allowedScales + overrideKey',
       'C66: Utensils → Equipment (form) / Equipment Required (view)',
@@ -2182,6 +2222,7 @@ function _serializeForm() {
     spirit:   document.getElementById('f-spirit')?.value  || '',
     technique: document.getElementById('f-technique')?.value || '',
     stdDrinks: document.getElementById('f-std-drinks')?.value || '',
+    ice:      getIceValue(),
     scalable: !document.getElementById('scalable-row')?.classList.contains('off'),
     ingHtml:  document.getElementById('ing-builder')?.innerHTML    || '',
     methHtml: document.getElementById('method-builder')?.innerHTML || '',
@@ -2233,6 +2274,7 @@ function applyFormSnapshot(snapshot) {
   if (document.getElementById('f-spirit'))    document.getElementById('f-spirit').value    = snapshot.spirit || '';
   if (document.getElementById('f-technique')) document.getElementById('f-technique').value = snapshot.technique || '';
   if (document.getElementById('f-std-drinks')) document.getElementById('f-std-drinks').value = snapshot.stdDrinks || '';
+  populateIceSelect(snapshot.ice || '');
   const frozenBtn = document.getElementById('frozen-toggle');
   if (frozenBtn) frozenBtn.classList.toggle('on', !!snapshot.frozen);
   const row = document.getElementById('scalable-row');
@@ -3049,7 +3091,9 @@ function removeTagFromGroup(group, tag) {
       ]
     );
   } else {
-    doRemoveTag(group, tag, 'listonly');
+    showConfirm(`Remove "${tag}"?`, `This tag is not currently used in any recipes.`, [
+      { label: 'Remove', danger: true, fn: () => doRemoveTag(group, tag, 'listonly') }
+    ]);
   }
 }
 
@@ -4213,13 +4257,17 @@ function applyGroupBy() {
 function renderGroupModal() {
   const allOptions = [
     ...Object.keys(TAG_GROUPS),
+    'Base Spirit',
     'Glass',
-    'Technique'
+    'Technique',
+    'Standard Drinks'
   ];
   // C67: Only show options that have at least one recipe with a value
   const OPTIONS = allOptions.filter(opt => {
+    if (opt === 'Base Spirit') return recipes.some(r => r.spirit);
     if (opt === 'Glass') return recipes.some(r => r.glass);
     if (opt === 'Technique') return recipes.some(r => r.technique);
+    if (opt === 'Standard Drinks') return recipes.some(r => r.standardDrinks != null);
     // Tag group — check if any recipe has a tag from this group
     const groupTags = TAG_GROUPS[opt] || [];
     return recipes.some(r => (r.tags||[]).some(t => groupTags.some(gt => gt.toLowerCase() === t.toLowerCase())));
@@ -4239,11 +4287,22 @@ function selectGroupBy(opt) {
 
 function getRecipeGroups(r) {
   if (!groupBy) return [null];
+  if (groupBy === 'Base Spirit') {
+    return r.spirit ? [r.spirit] : ['No spirit'];
+  }
   if (groupBy === 'Glass') {
     return r.glass ? [r.glass] : ['No glass'];
   }
   if (groupBy === 'Technique') {
     return r.technique ? [r.technique] : ['Unspecified'];
+  }
+  if (groupBy === 'Standard Drinks') {
+    const sd = r.standardDrinks;
+    if (sd == null) return ['Unspecified'];
+    if (sd <= 1) return ['0 – 1'];
+    if (sd <= 2) return ['1 – 2'];
+    if (sd <= 3) return ['2 – 3'];
+    return ['3+'];
   }
   // Tag group
   const groupTags = TAG_GROUPS[groupBy] || [];
@@ -4376,6 +4435,61 @@ function getGlassValue() {
   const sel = document.getElementById('f-glass');
   if (sel.value === '__manual__' || sel.style.display === 'none') {
     return document.getElementById('f-glass-manual')?.value.trim() || '';
+  }
+  return sel.value || '';
+}
+
+// ── ICE SELECT ───────────────────────────────────────────────────────────
+function populateIceSelect(currentValue) {
+  const sel = document.getElementById('f-ice');
+  const manual = document.getElementById('f-ice-manual');
+  const backBtn = document.getElementById('ice-back-btn');
+  const isInList = ICE_OPTIONS.includes(currentValue);
+
+  sel.innerHTML = '<option value="">— none —</option>' +
+    ICE_OPTIONS.map(o => `<option value="${esc(o)}"${currentValue === o ? ' selected' : ''}>${esc(o)}</option>`).join('') +
+    (currentValue && !isInList ? `<option value="${esc(currentValue)}" selected>${esc(currentValue)}</option>` : '') +
+    '<option value="__manual__">Type manually…</option>';
+
+  sel.style.display = '';
+  if (manual) { manual.style.display = 'none'; manual.value = ''; }
+  if (backBtn) backBtn.style.display = 'none';
+}
+
+function handleIceSelect(sel) {
+  const manual = document.getElementById('f-ice-manual');
+  const backBtn = document.getElementById('ice-back-btn');
+  if (sel.value === '__manual__') {
+    sel.style.display = 'none';
+    manual.style.display = '';
+    if (backBtn) backBtn.style.display = '';
+    manual.focus();
+  } else {
+    manual.style.display = 'none';
+    manual.value = '';
+    sel.style.display = '';
+    if (backBtn) backBtn.style.display = 'none';
+    captureFormSnapshot('Change ice');
+  }
+}
+
+function switchIceToDropdown() {
+  const sel = document.getElementById('f-ice');
+  const manual = document.getElementById('f-ice-manual');
+  const backBtn = document.getElementById('ice-back-btn');
+  preCaptureSnapshot();
+  sel.style.display = '';
+  sel.value = '';
+  manual.style.display = 'none';
+  manual.value = '';
+  if (backBtn) backBtn.style.display = 'none';
+  captureFormSnapshot('Change ice');
+}
+
+function getIceValue() {
+  const sel = document.getElementById('f-ice');
+  if (sel.value === '__manual__' || sel.style.display === 'none') {
+    return document.getElementById('f-ice-manual')?.value.trim() || '';
   }
   return sel.value || '';
 }
@@ -4871,7 +4985,19 @@ function renderViewBody(r) {
   }
   if (r.spirit) metaItems.push(`<span class="vmeta"><strong>${esc(r.spirit)}</strong></span>`);
   if (r.technique) metaItems.push(`<span class="vmeta">${esc(r.technique)}</span>`);
-  if (r.standardDrinks) metaItems.push(`<span class="vmeta"><strong>${r.standardDrinks}</strong> std drinks</span>`);
+  if (r.ice) metaItems.push(`<span class="vmeta">${esc(r.ice)} ice</span>`);
+  if (r.standardDrinks) {
+    const sd = r.standardDrinks;
+    if (scaleFactor === 1) {
+      metaItems.push(`<span class="vmeta"><strong>${sd}</strong> std drinks</span>`);
+    } else if (scaleFactor < 1) {
+      const scaled = Math.round(sd * scaleFactor * 10) / 10;
+      metaItems.push(`<span class="vmeta"><strong>${scaled}</strong> std drinks</span>`);
+    } else {
+      const total = Math.round(sd * scaleFactor * 10) / 10;
+      metaItems.push(`<span class="vmeta"><strong>${total}</strong> <span style="font-weight:400;font-size:0.78rem">(${scaleFactor} × ${sd})</span> std drinks</span>`);
+    }
+  }
 
   // Helper: get the override key for the current scaleFactor
   function overrideKey() {
@@ -4904,7 +5030,6 @@ function renderViewBody(r) {
         ...activeSub,
         amount: activeSub.amount   != null ? activeSub.amount   : item.amount,
         unit:   activeSub.unit     != null && activeSub.unit !== '' ? activeSub.unit : item.unit,
-        prep:   activeSub.prep     != null && activeSub.prep !== '' ? activeSub.prep : item.prep,
         note:   activeSub.ingNote  != null && activeSub.ingNote !== '' ? activeSub.ingNote : item.note,
       } : item;
       const key = overrideKey();
@@ -4978,7 +5103,7 @@ function renderViewBody(r) {
         ? `<td style="text-align:center;padding:5px 2px;vertical-align:middle"><div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:4px">${subs.length ? subColInner : ''}${noteBtnHtml}</div></td>`
         : '<td></td>';
 
-      out += `<tr class="ing-view-row" onclick="if(!event.target.closest('button'))this.classList.toggle('done')" title="Tap to tick off"><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td><td style="color:var(--ink-faint)">${esc(displayItem.prep||'')}</td>${actionCol}</tr>`;
+      out += `<tr class="ing-view-row" onclick="if(!event.target.closest('button'))this.classList.toggle('done')" title="Tap to tick off"><td>${nameCell}</td><td${qtyClass}>${esc(qtyFull)}</td>${actionCol}</tr>`;
       if (displayNote) {
         out += `<tr class="ing-note-view-row" id="ing-note-view-${noteKey}" style="display:none"><td colspan="4" style="padding:0 0.5rem 6px;font-size:0.73rem;color:var(--ink-faint)">${esc(displayNote)}</td></tr>`;
       }
@@ -5369,6 +5494,9 @@ function openEdit(r) {
   renderFormGarnishes();
   document.getElementById('f-std-drinks').value = r?.standardDrinks ?? '';
 
+  // Ice dropdown
+  populateIceSelect(r?.ice || '');
+
   // Spirit dropdown — populate from Spirit tag group
   const spiritSel = document.getElementById('f-spirit');
   const spiritTags = TAG_GROUPS['Spirit'] || [];
@@ -5487,6 +5615,10 @@ function updateScaleOptions() {
   document.querySelectorAll('.ns-half-row, .sub-half-row').forEach(r => r.style.display   = half   ? '' : 'none');
   document.querySelectorAll('.ns-double-row, .sub-double-row').forEach(r => r.style.display = double ? '' : 'none');
   document.querySelectorAll('.ns-triple-row, .sub-triple-row').forEach(r => r.style.display = triple ? '' : 'none');
+  const quad  = document.getElementById('scale-quadruple')?.checked ?? true;
+  const quint = document.getElementById('scale-quintuple')?.checked ?? true;
+  document.querySelectorAll('.ns-quadruple-row, .sub-quadruple-row').forEach(r => r.style.display = quad  ? '' : 'none');
+  document.querySelectorAll('.ns-quintuple-row, .sub-quintuple-row').forEach(r => r.style.display = quint ? '' : 'none');
 }
 
 function closeEdit(force) {
@@ -5711,7 +5843,9 @@ async function saveRecipe() {
           scaleOverrides: noscale ? {
             half:   readOv('ns-half'),
             double: readOv('ns-double'),
-            triple: readOv('ns-triple')
+            triple: readOv('ns-triple'),
+            quadruple: readOv('ns-quadruple'),
+            quintuple: readOv('ns-quintuple')
           } : null
         });
       }
@@ -5737,7 +5871,9 @@ async function saveRecipe() {
           scaleOverrides: noscale ? {
             half:   wrap.querySelector('.ns-half')?.value.trim()  || '',
             double: wrap.querySelector('.ns-double')?.value.trim() || '',
-            triple: wrap.querySelector('.ns-triple')?.value.trim() || ''
+            triple: wrap.querySelector('.ns-triple')?.value.trim() || '',
+            quadruple: wrap.querySelector('.ns-quadruple')?.value.trim() || '',
+            quintuple: wrap.querySelector('.ns-quintuple')?.value.trim() || ''
           } : null
         });
       }
@@ -5753,6 +5889,7 @@ async function saveRecipe() {
     glassFrozen: document.getElementById('frozen-toggle')?.classList.contains('on') || false,
     garnish: formGarnishes.length ? formGarnishes.join(', ') : null,
     standardDrinks: parseFloat(document.getElementById('f-std-drinks').value) || null,
+    ice: getIceValue() || null,
     scalable,
     allowedScales: scalable ? {
       half:      document.getElementById('scale-half')?.checked ?? true,
@@ -6081,7 +6218,7 @@ function addIngSection(data) {
 
 function buildGroupSelect(selected) {
   // T23: group dropdown with presets + manual option (like unit select)
-  const isCustom = selected && !['Dairy Free', 'Gluten Free', 'Vegetarian', 'Vegan', 'Nut Free', 'Low Carb', 'Keto', 'Paleo'].includes(selected);
+  const isCustom = selected && !['Low ABV Version', 'Virgin/Mocktail', 'Spicy Version', 'Tropical Version', 'Smoky Version', 'Budget Option', 'Premium Option', 'Seasonal Swap', 'Dietary'].includes(selected);
   if (isCustom) {
     return `<input type="text" class="sub-group-inp sub-group-manual"
       placeholder="Group name" value="${esc(selected)}"
@@ -6090,7 +6227,7 @@ function buildGroupSelect(selected) {
   }
   const opts = [
     `<option value="" ${!selected?'selected':''}>Group…</option>`,
-    ...['Dairy Free', 'Gluten Free', 'Vegetarian', 'Vegan', 'Nut Free', 'Low Carb', 'Keto', 'Paleo'].map(g => `<option value="${esc(g)}" ${g===selected?'selected':''}>${esc(g)}</option>`),
+    ...['Low ABV Version', 'Virgin/Mocktail', 'Spicy Version', 'Tropical Version', 'Smoky Version', 'Budget Option', 'Premium Option', 'Seasonal Swap', 'Dietary'].map(g => `<option value="${esc(g)}" ${g===selected?'selected':''}>${esc(g)}</option>`),
     `<option value="__manual__">Type manually…</option>`
   ].join('');
   return `<select class="sub-group-inp sub-group-sel" onchange="handleGroupChange(this)"
@@ -6555,6 +6692,8 @@ function addIngRow(btn, rowsEl, data) {
       ${buildOverrideRow('½×','ns-half',  ov.half,   amt, unit, 0.5)}
       ${buildOverrideRow('2×','ns-double', ov.double, amt, unit, 2)}
       ${buildOverrideRow('3×','ns-triple', ov.triple, amt, unit, 3)}
+      ${buildOverrideRow('4×','ns-quadruple', ov.quadruple, amt, unit, 4)}
+      ${buildOverrideRow('5×','ns-quintuple', ov.quintuple, amt, unit, 5)}
     </div>
 
     <!-- Substitutes panel (inside card, both views) -->
@@ -6985,6 +7124,8 @@ function addStep(btn, stepsEl, stepData) {
       <div class="scale-override-row"><span class="scale-override-lbl">½×</span><input class="ns-half"   placeholder="½× override" value="${esc(ov.half||'')}"></div>
       <div class="scale-override-row"><span class="scale-override-lbl">2×</span><input class="ns-double" placeholder="2× override" value="${esc(ov.double||'')}"></div>
       <div class="scale-override-row"><span class="scale-override-lbl">3×</span><input class="ns-triple" placeholder="3× override" value="${esc(ov.triple||'')}"></div>
+      <div class="scale-override-row"><span class="scale-override-lbl">4×</span><input class="ns-quadruple" placeholder="4× override" value="${esc(ov.quadruple||'')}"></div>
+      <div class="scale-override-row"><span class="scale-override-lbl">5×</span><input class="ns-quintuple" placeholder="5× override" value="${esc(ov.quintuple||'')}"></div>
     </div>`;
   stepsEl.appendChild(wrap);
   const ta = wrap.querySelector('.step-ta');
