@@ -1873,7 +1873,7 @@ header{
 <script>
 // ── DEFAULT CONFIG (overridden by saved settings) ─────────────────────────
 const DEFAULT_TAG_GROUPS = {
-  'Spirit':     ['Bourbon','Gin','Mezcal','Rum','Rye','Scotch','Tequila','Vodka','Whiskey','Brandy','Cognac','Absinthe','Pisco','Amaretto'],
+  'Spirit':     ['Bourbon','Gin','Mezcal','Rum','Rye','Scotch','Tequila','Vodka','Whiskey','Brandy','Cognac','Absinthe','Pisco'],
   'Style':      ['Classic','Tiki','Sour','Highball','Spritz','Fizz','Flip','Julep','Smash','Punch','Shot','Hot','Frozen'],
   'Flavour':    ['Sweet','Dry','Bitter','Smoky','Citrus','Herbal','Spiced','Tropical','Floral','Creamy'],
   'Strength':   ['Strong','Medium','Light','Non-Alcoholic'],
@@ -3129,34 +3129,30 @@ function doRemoveTag(group, tag, mode, replacementTag) {
 // ── SETTINGS: UNITS ───────────────────────────────────────────────────────
 function renderStgUnits() {
   const pane = document.getElementById('stg-pane-units');
-  const customUnits = UNIT_GROUPS['Custom units'] || [];
+  const customUnits = (UNIT_GROUPS['Custom units'] || []).filter(u => !RETIRED_UNITS.includes(u));
 
-  const rows = customUnits.map(u => {
-    const retired = RETIRED_UNITS.includes(u);
+  const pills = customUnits.map(u => {
     const safeU = esc(u).replace(/'/g,"\\'");
-    return `<div class="stg-unit-row${retired?' retired':''}">
-      <span class="unit-name${retired?' retired-lbl':''}" id="unit-label-${esc(u)}">${esc(u)}</span>
-      <div class="stg-unit-btns">
-        ${!retired ? `<button class="rename-btn" onclick="startRenameUnit('${safeU}')" title="Rename">\u270e</button>` : ''}
-        ${retired
-          ? `<button class="restore-btn" onclick="restoreUnit('${safeU}')">Restore</button>`
-          : `<button class="retire-btn" onclick="retireUnit('${safeU}')">Retire</button>`
-        }
-      </div>
-    </div>`;
+    return `<span class="stg-tag">
+      ${esc(u)}
+      <button onclick="startRenameUnit('${safeU}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button>
+      <button onclick="removeUnit('${safeU}')" title="Remove">×</button>
+    </span>`;
   }).join('');
 
   pane.innerHTML = `
-    <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6">
-      Custom units appear in the ingredient unit dropdown alongside Volume and Mass.
-      Retiring a unit hides it from new entries but keeps it in existing recipes. Use \u270e to rename.
+    <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">
+      Custom units appear in the ingredient unit dropdown alongside Volume and Mass. Use ✎ to rename.
     </div>
-    <div class="stg-unit-group">
-      <div class="stg-unit-list">${rows || '<div style="font-size:0.8rem;color:var(--ink-faint);padding:4px 0">No custom units yet.</div>'}</div>
-      <div class="stg-add-row" style="margin-top:0.4rem">
-        <input type="text" placeholder="Add custom unit\u2026" id="new-unit-Custom units"
-          onkeydown="if(event.key==='Enter'){addUnitToGroup('Custom units');event.preventDefault()}">
-        <button onclick="addUnitToGroup('Custom units')">Add</button>
+    <div class="stg-group">
+      <div class="stg-group-head"><span class="stg-group-name">Custom Units</span></div>
+      <div class="stg-group-body" id="stg-unit-body">${pills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No custom units yet — add one below.</span>'}</div>
+      <div style="padding:0 0.9rem 0.7rem">
+        <div class="stg-add-row">
+          <input type="text" placeholder="Add custom unit…" id="new-unit-Custom units"
+            onkeydown="if(event.key==='Enter'){addUnitToGroup('Custom units');event.preventDefault()}">
+          <button onclick="addUnitToGroup('Custom units')">Add</button>
+        </div>
       </div>
     </div>`;
 }
@@ -3177,62 +3173,77 @@ function addUnitToGroup(group) {
   toast(`"${unit}" added`);
 }
 
-function retireUnit(unit) {
+function removeUnit(unit) {
   const affected = recipes.filter(r =>
     r.ingredients?.some(sec => sec.items?.some(item =>
       item.unit === unit || item.substitutes?.some(s => s.unit === unit)
     ))
   ).length;
   if (affected > 0) {
+    const allOtherUnits = Object.values(UNIT_GROUPS).flat().filter(u => u !== unit && !RETIRED_UNITS.includes(u));
+    const selectOpts = allOtherUnits.map(u => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
     showConfirm(
       `Remove "${unit}"?`,
       `Used in ${affected} recipe${affected!==1?'s':''}. Choose what to do:`,
       [
-        { label: 'Remove from list only', danger: false, fn: () => doRetireUnit(unit) },
-        { label: 'Remove from all recipes', danger: true, fn: () => {
+        { label: 'Remove from list only', danger: false, fn: () => doRemoveUnit(unit, false) },
+        { label: 'Remove from all recipes', danger: true, fn: () => doRemoveUnit(unit, true) },
+        { label: 'Replace with…', danger: false, fn: () => {
+          const sel = document.getElementById('replace-tag-select');
+          const replacement = sel?.value;
+          if (!replacement) { toast('Please choose a replacement'); return; }
           recipes.forEach(r => r.ingredients?.forEach(sec => sec.items?.forEach(item => {
-            if (item.unit === unit) item.unit = '';
-            item.substitutes?.forEach(s => { if (s.unit === unit) s.unit = ''; });
+            if (item.unit === unit) item.unit = replacement;
+            item.substitutes?.forEach(s => { if (s.unit === unit) s.unit = replacement; });
           })));
-          doRetireUnit(unit);
+          doRemoveUnit(unit, false);
           syncToGist();
-        }}
+          toast(`"${unit}" replaced with "${replacement}"`);
+        }, selectOpts }
       ]
     );
   } else {
-    doRetireUnit(unit);
+    doRemoveUnit(unit, false);
   }
 }
 
-function doRetireUnit(unit) {
+function doRemoveUnit(unit, removeFromRecipes) {
+  // Retire the unit (hide from dropdowns but keep in data)
   if (!RETIRED_UNITS.includes(unit)) RETIRED_UNITS.push(unit);
+  if (removeFromRecipes) {
+    recipes.forEach(r => r.ingredients?.forEach(sec => sec.items?.forEach(item => {
+      if (item.unit === unit) item.unit = '';
+      item.substitutes?.forEach(s => { if (s.unit === unit) s.unit = ''; });
+    })));
+    syncToGist();
+  }
   saveSettings();
   renderStgUnits();
-  toast(`"${unit}" retired`);
+  toast(`"${unit}" removed`);
 }
 
-function restoreUnit(unit) {
-  RETIRED_UNITS = RETIRED_UNITS.filter(u => u !== unit);
-  saveSettings();
-  renderStgUnits();
-  toast(`"${unit}" restored`);
-}
 
 // C85: Rename custom unit with inline edit
 function startRenameUnit(unit) {
-  const label = document.getElementById('unit-label-' + unit);
-  if (!label) return;
-  const editWrap = document.createElement('span');
-  editWrap.className = 'stg-tag-edit-wrap';
-  const safeUnit = unit.replace(/'/g, "\\'");
-  editWrap.innerHTML = `
-    <input type="text" value="${esc(unit)}" id="rename-unit-input"
-      onkeydown="if(event.key==='Enter')confirmRenameUnit('${safeUnit}')">
-    <button onclick="confirmRenameUnit('${safeUnit}')">\u2713</button>
-    <button onclick="renderStgUnits()">\u2715</button>`;
-  label.replaceWith(editWrap);
-  editWrap.querySelector('input').focus();
-  editWrap.querySelector('input').select();
+  const body = document.getElementById('stg-unit-body');
+  if (!body) return;
+  const pills = body.querySelectorAll('.stg-tag');
+  for (const pill of pills) {
+    if (pill.textContent.trim().startsWith(unit)) {
+      const editWrap = document.createElement('span');
+      editWrap.className = 'stg-tag-edit-wrap';
+      const safeUnit = unit.replace(/'/g, "\\'");
+      editWrap.innerHTML = `
+        <input type="text" value="${esc(unit)}" id="rename-unit-input"
+          onkeydown="if(event.key==='Enter')confirmRenameUnit('${safeUnit}')">
+        <button onclick="confirmRenameUnit('${safeUnit}')">✓</button>
+        <button onclick="renderStgUnits()">✕</button>`;
+      pill.replaceWith(editWrap);
+      editWrap.querySelector('input').focus();
+      editWrap.querySelector('input').select();
+      break;
+    }
+  }
 }
 
 function confirmRenameUnit(oldUnit) {
@@ -3387,15 +3398,31 @@ function addGarnishToGroup(group) {
 }
 
 function removeGarnishFromGroup(group, g) {
-  // Count recipes using this garnish
   const affected = recipes.filter(r => r.garnish && r.garnish.toLowerCase().includes(g.toLowerCase()));
   if (affected.length > 0) {
+    // Build replacement options from all garnishes except this one
+    const allOther = Object.values(GARNISH_GROUPS).flat().filter(x => x !== g);
+    const selectOpts = allOther.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
     showConfirm(
       `Remove "${g}"?`,
       `Used in ${affected.length} recipe${affected.length>1?'s':''}. Choose what to do:`,
       [
         { label: 'Remove from list only', danger: false, fn: () => doRemoveGarnish(group, g, false) },
-        { label: 'Remove from all recipes', danger: true, fn: () => doRemoveGarnish(group, g, true) }
+        { label: 'Remove from all recipes', danger: true, fn: () => doRemoveGarnish(group, g, true) },
+        { label: 'Replace with…', danger: false, fn: () => {
+          const sel = document.getElementById('replace-tag-select');
+          const replacement = sel?.value;
+          if (!replacement) { toast('Please choose a replacement'); return; }
+          recipes.forEach(r => {
+            if (r.garnish) {
+              const parts = r.garnish.split(',').map(x => x.trim()).map(x => x.toLowerCase() === g.toLowerCase() ? replacement : x);
+              r.garnish = [...new Set(parts)].join(', ');
+            }
+          });
+          doRemoveGarnish(group, g, false);
+          syncToGist();
+          toast(`"${g}" replaced with "${replacement}"`);
+        }, selectOpts }
       ]
     );
   } else {
@@ -3479,33 +3506,30 @@ function confirmRenameGarnishItem(group, oldG) {
 function renderStgGlasses() {
   const pane = document.getElementById('stg-pane-glasses');
   if (!pane) return;
+  const activeGlasses = GLASS_OPTIONS.filter(g => !RETIRED_GLASSES.includes(g));
 
-  const rows = GLASS_OPTIONS.map(g => {
-    const retired = RETIRED_GLASSES.includes(g);
+  const pills = activeGlasses.map(g => {
     const safeG = esc(g).replace(/'/g, "\\'");
-    const safeId = esc(g).replace(/\s+/g, '_');
-    return `<div class="stg-unit-row${retired?' retired':''}">
-      <span class="unit-name${retired?' retired-lbl':''}" id="glass-label-${safeId}">${esc(g)}</span>
-      <div class="stg-unit-btns">
-        ${!retired ? `<button class="rename-btn" onclick="startRenameGlass('${safeG}')" title="Rename">✎</button>` : ''}
-        ${retired
-          ? `<button class="restore-btn" onclick="restoreGlass('${safeG}')">Restore</button>`
-          : `<button class="retire-btn" onclick="retireGlass('${safeG}')">Retire</button>`
-        }
-      </div>
-    </div>`;
+    return `<span class="stg-tag">
+      ${esc(g)}
+      <button onclick="startRenameGlass('${safeG}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button>
+      <button onclick="removeGlass('${safeG}')" title="Remove">×</button>
+    </span>`;
   }).join('');
 
   pane.innerHTML = `
-    <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6">
-      Manage glass types for the edit form dropdown. Retiring hides from new entries but keeps in existing recipes. Use ✎ to rename.
+    <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">
+      Manage glass types for the edit form dropdown. Use ✎ to rename.
     </div>
-    <div class="stg-unit-group">
-      <div class="stg-unit-list">${rows || '<div style="font-size:0.8rem;color:var(--ink-faint);padding:4px 0">No glass types yet.</div>'}</div>
-      <div class="stg-add-row" style="margin-top:0.4rem">
-        <input type="text" placeholder="Add glass type…" id="new-glass-input"
-          onkeydown="if(event.key==='Enter'){addGlass();event.preventDefault()}">
-        <button onclick="addGlass()">Add</button>
+    <div class="stg-group">
+      <div class="stg-group-head"><span class="stg-group-name">Glass Types</span></div>
+      <div class="stg-group-body" id="stg-glass-body">${pills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No glass types yet \u2014 add one below.</span>'}</div>
+      <div style="padding:0 0.9rem 0.7rem">
+        <div class="stg-add-row">
+          <input type="text" placeholder="Add glass type\u2026" id="new-glass-input"
+            onkeydown="if(event.key==='Enter'){addGlass();event.preventDefault()}">
+          <button onclick="addGlass()">Add</button>
+        </div>
       </div>
     </div>`;
 }
@@ -3525,55 +3549,64 @@ function addGlass() {
   toast(`"${g}" added`);
 }
 
-function retireGlass(g) {
+function removeGlass(g) {
   const affected = recipes.filter(r => r.glass === g).length;
   if (affected > 0) {
+    const allOther = GLASS_OPTIONS.filter(x => x !== g && !RETIRED_GLASSES.includes(x));
+    const selectOpts = allOther.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join('');
     showConfirm(
       `Remove "${g}"?`,
       `Used in ${affected} recipe${affected!==1?'s':''}. Choose what to do:`,
       [
-        { label: 'Remove from list only', danger: false, fn: () => doRetireGlass(g) },
-        { label: 'Remove from all recipes', danger: true, fn: () => {
-          recipes.forEach(r => { if (r.glass === g) r.glass = null; });
-          doRetireGlass(g);
+        { label: 'Remove from list only', danger: false, fn: () => doRemoveGlass(g, false) },
+        { label: 'Remove from all recipes', danger: true, fn: () => doRemoveGlass(g, true) },
+        { label: 'Replace with\u2026', danger: false, fn: () => {
+          const sel = document.getElementById('replace-tag-select');
+          const replacement = sel?.value;
+          if (!replacement) { toast('Please choose a replacement'); return; }
+          recipes.forEach(r => { if (r.glass === g) r.glass = replacement; });
+          doRemoveGlass(g, false);
           syncToGist();
-        }}
+          toast(`"${g}" replaced with "${replacement}"`);
+        }, selectOpts }
       ]
     );
   } else {
-    doRetireGlass(g);
+    doRemoveGlass(g, false);
   }
 }
 
-function doRetireGlass(g) {
+function doRemoveGlass(g, removeFromRecipes) {
   if (!RETIRED_GLASSES.includes(g)) RETIRED_GLASSES.push(g);
+  if (removeFromRecipes) {
+    recipes.forEach(r => { if (r.glass === g) r.glass = null; });
+    syncToGist();
+  }
   saveSettings();
   renderStgGlasses();
-  toast(`"${g}" retired`);
-}
-
-function restoreGlass(g) {
-  RETIRED_GLASSES = RETIRED_GLASSES.filter(x => x !== g);
-  saveSettings();
-  renderStgGlasses();
-  toast(`"${g}" restored`);
+  toast(`"${g}" removed`);
 }
 
 function startRenameGlass(g) {
-  const safeId = esc(g).replace(/\s+/g, '_');
-  const label = document.getElementById('glass-label-' + safeId);
-  if (!label) return;
-  const editWrap = document.createElement('span');
-  editWrap.className = 'stg-tag-edit-wrap';
-  const safeG = g.replace(/'/g, "\\'");
-  editWrap.innerHTML = `
-    <input type="text" value="${esc(g)}" id="rename-glass-input"
-      onkeydown="if(event.key==='Enter')confirmRenameGlass('${safeG}')">
-    <button onclick="confirmRenameGlass('${safeG}')">✓</button>
-    <button onclick="renderStgGlasses()">✕</button>`;
-  label.replaceWith(editWrap);
-  editWrap.querySelector('input').focus();
-  editWrap.querySelector('input').select();
+  const body = document.getElementById('stg-glass-body');
+  if (!body) return;
+  const pills = body.querySelectorAll('.stg-tag');
+  for (const pill of pills) {
+    if (pill.textContent.trim().startsWith(g)) {
+      const editWrap = document.createElement('span');
+      editWrap.className = 'stg-tag-edit-wrap';
+      const safeG = g.replace(/'/g, "\\'");
+      editWrap.innerHTML = `
+        <input type="text" value="${esc(g)}" id="rename-glass-input"
+          onkeydown="if(event.key==='Enter')confirmRenameGlass('${safeG}')">
+        <button onclick="confirmRenameGlass('${safeG}')">✓</button>
+        <button onclick="renderStgGlasses()">✕</button>`;
+      pill.replaceWith(editWrap);
+      editWrap.querySelector('input').focus();
+      editWrap.querySelector('input').select();
+      break;
+    }
+  }
 }
 
 function confirmRenameGlass(oldG) {
@@ -4318,12 +4351,17 @@ function addFormGarnish(raw) {
   renderFormGarnishes();
   document.getElementById('garnish-input').value = '';
   hideGarnishSugs();
-  // If garnish isn't in GARNISH_OPTIONS, add it
+  // If garnish isn't in any group, add to Other
+  const allGrouped = Object.values(GARNISH_GROUPS).flat().map(x=>x.toLowerCase());
+  if (!allGrouped.includes(g.toLowerCase())) {
+    if (!GARNISH_GROUPS['Other']) GARNISH_GROUPS['Other'] = [];
+    GARNISH_GROUPS['Other'].push(g);
+  }
   if (!GARNISH_OPTIONS.map(x=>x.toLowerCase()).includes(g.toLowerCase())) {
     GARNISH_OPTIONS.push(g);
     GARNISH_OPTIONS.sort((a,b) => a.localeCompare(b));
-    saveSettings();
   }
+  saveSettings();
 }
 
 function removeFormGarnish(g) {
@@ -4349,40 +4387,29 @@ function garnishInputFn(e) { showGarnishSugs(e.target.value); }
 function showGarnishSugs(rawVal) {
   const val = rawVal.toLowerCase().trim();
   const el = document.getElementById('garnish-sugs');
-  const activeGarnishes = GARNISH_OPTIONS.filter(g => !RETIRED_GARNISHES.includes(g));
+  // All garnishes from all groups
+  const allGrouped = Object.values(GARNISH_GROUPS).flat();
 
   if (!val) {
-    // Show grouped suggestions
+    // Show grouped suggestions from GARNISH_GROUPS
     let html = '';
     for (const [group, garnishes] of Object.entries(GARNISH_GROUPS)) {
-      // Show garnishes that exist in GARNISH_OPTIONS (active)
-      const groupItems = garnishes.filter(g => activeGarnishes.map(x=>x.toLowerCase()).includes(g.toLowerCase()));
-      if (!groupItems.length) continue;
-      const pills = groupItems.map(g => {
+      if (!garnishes.length) continue;
+      const pills = garnishes.map(g => {
         const already = formGarnishes.map(f=>f.toLowerCase()).includes(g.toLowerCase());
         return `<span class="tsug${already?' already':''}" onclick="addFormGarnish('${g}')">${g}</span>`;
       }).join('');
       html += `<div class="tsug-group-lbl">${group}</div><div class="tsug-row">${pills}</div>`;
     }
-    // Show any custom garnishes not in default groups
-    const allDefaultGarnishes = Object.values(DEFAULT_GARNISH_GROUPS).flat().map(g=>g.toLowerCase());
-    const customGarnishes = activeGarnishes.filter(g => !allDefaultGarnishes.includes(g.toLowerCase()));
-    if (customGarnishes.length) {
-      const pills = customGarnishes.map(g => {
-        const already = formGarnishes.map(f=>f.toLowerCase()).includes(g.toLowerCase());
-        return `<span class="tsug${already?' already':''}" onclick="addFormGarnish('${g}')">${g}</span>`;
-      }).join('');
-      html += `<div class="tsug-group-lbl">Custom</div><div class="tsug-row">${pills}</div>`;
-    }
     el.innerHTML = html;
     el.classList.add('show');
   } else {
-    // Narrowed search
-    const matches = activeGarnishes.filter(g =>
+    // Narrowed search across all grouped garnishes
+    const matches = allGrouped.filter(g =>
       g.toLowerCase().includes(val) && !formGarnishes.map(f=>f.toLowerCase()).includes(g.toLowerCase())
     );
     const titled = toTitleCase(rawVal.trim());
-    const showCustom = titled && !activeGarnishes.map(g=>g.toLowerCase()).includes(titled.toLowerCase())
+    const showCustom = titled && !allGrouped.map(g=>g.toLowerCase()).includes(titled.toLowerCase())
                                && !formGarnishes.map(f=>f.toLowerCase()).includes(titled.toLowerCase());
     if (!matches.length && !showCustom) { hideGarnishSugs(); return; }
     let html = '';
