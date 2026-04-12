@@ -1797,20 +1797,22 @@ header{
       <button class="xbtn" onclick="closeSettings()">✕</button>
     </div>
     <div class="stg-body">
-      <div class="stg-tabs">
-        <button class="stg-tab active" onclick="switchStgTab('tags',this)">Tags</button>
-        <button class="stg-tab" onclick="switchStgTab('units',this)">Units</button>
-        <button class="stg-tab" onclick="switchStgTab('garnishes',this)">Garnishes</button>
-        <button class="stg-tab" onclick="switchStgTab('glasses',this)">Glasses</button>
+      <div style="padding:0.7rem 1rem 0;border-bottom:1px solid var(--border)">
+        <select id="stg-nav" onchange="switchStgPane(this.value)" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;font-family:'Instrument Sans',sans-serif;font-size:0.85rem;color:var(--ink);background:var(--paper);outline:none;cursor:pointer">
+          <option value="tags">Tags</option>
+          <option value="units">Units</option>
+          <option value="garnishes">Garnishes</option>
+          <option value="glasses">Glasses</option>
+          <option value="spirits">Base Spirits</option>
+          <option value="techniques">Techniques</option>
+        </select>
       </div>
-      <!-- TAGS PANE -->
       <div class="stg-pane active" id="stg-pane-tags"></div>
-      <!-- UNITS PANE -->
       <div class="stg-pane" id="stg-pane-units"></div>
-      <!-- GARNISHES PANE -->
       <div class="stg-pane" id="stg-pane-garnishes"></div>
-      <!-- GLASSES PANE -->
       <div class="stg-pane" id="stg-pane-glasses"></div>
+      <div class="stg-pane" id="stg-pane-spirits"></div>
+      <div class="stg-pane" id="stg-pane-techniques"></div>
     </div>
     <div class="form-foot">
       <button class="btn-sec" onclick="closeSettings()">Done</button>
@@ -1885,12 +1887,12 @@ header{
 <script>
 // ── DEFAULT CONFIG (overridden by saved settings) ─────────────────────────
 const DEFAULT_TAG_GROUPS = {
-  'Spirit':     ['Bourbon','Gin','Mezcal','Rum','Rye','Scotch','Tequila','Vodka','Whiskey','Brandy','Cognac','Absinthe','Pisco'],
-  'Style':      ['Classic','Tiki','Sour','Highball','Spritz','Fizz','Flip','Julep','Smash','Punch','Shot','Hot','Frozen'],
-  'Flavour':    ['Sweet','Dry','Bitter','Smoky','Citrus','Herbal','Spiced','Tropical','Floral','Creamy'],
-  'Strength':   ['Strong','Medium','Light','Non-Alcoholic'],
-  'Occasion':   ['Signature','House Special','Menu','Seasonal','After Dinner','Brunch','Party'],
-  'Dietary':    ['Vegan','Dairy Free','Gluten Free','Low Sugar','Low ABV']
+  'Spirit':     ['Vodka','Gin','Dry Gin','Sloe Gin','White Rum','Gold Rum','Dark Rum','Spiced Rum','Tequila','Blanco Tequila','Reposado Tequila','A\u00f1ejo Tequila','Joven Tequila','Mezcal','Joven Mezcal','Reposado Mezcal','A\u00f1ejo Mezcal','Pechuga Mezcal','Whiskey','Bourbon','Rye','Scotch','Irish Whiskey','Japanese Whiskey','Brandy','Sherry','Cognac','Absinthe','Pisco','Amaretto','Coffee Liqueur','Maraschino Liqueur','Campari','Aperol','Elderflower Liqueur','Triple Sec','Dry Vermouth','Sweet Vermouth','Cacha\u00e7a','Green Chartreuse','Yellow Chartreuse','Irish Cream','B\u00e9n\u00e9dictine','Cr\u00e8me de Cacao','Cr\u00e8me de Menthe','Cr\u00e8me de Cassis','Schnapps','Peach Schnapps','Melon Liqueur','Hazelnut Liqueur','Limoncello','Drambuie','Chambord','Montenegro','Fernet-Branca','Prosecco','Champagne'],
+  'Style':      ['Tiki','Sour','Highball','Spritz','Fizz','Flip','Julep','Martini','Mull','Smash','Punch','Daisy','Shot','Hot','Frozen'],
+  'Origin':     ['Classic','Modern','Twist On Classic','Original'],
+  'Flavour':    ['Sweet','Dry','Bitter','Smoky','Citrus','Herbal','Spiced','Tropical','Floral','Creamy','Spicy','Coffee','Chocolate','Watermelon','Pineapple'],
+  'Strength':   ['Strong','Low Alcohol','Non-Alcoholic'],
+  'Dietary':    ['Vegan','Dairy Free','Gluten Free','Low Sugar','Contains Egg','Contains Dairy','Contains Peanuts']
 };
 const DEFAULT_UNIT_GROUPS = {
   'Volume':       ['ml','oz','tsp','tbsp','cup','L'],
@@ -1906,7 +1908,13 @@ const DEFAULT_GLASS_OPTIONS = [
 let GLASS_OPTIONS = [...DEFAULT_GLASS_OPTIONS];
 let RETIRED_GLASSES = [];
 
-const TECHNIQUE_OPTIONS = ['Shaken','Stirred','Built','Blended','Layered','Muddled','Thrown','Swizzled'];
+const DEFAULT_BASE_SPIRITS = ['Gin','Mezcal','Rum','Tequila','Vodka','Whiskey','Bourbon','Rye','Scotch','Brandy','Sherry','Cognac','Port','Absinthe','Pisco','Amaretto','Cacha\u00e7a','Coffee Liqueur','Maraschino Liqueur','Campari','Aperol','Vermouth','Liqueur'];
+let BASE_SPIRIT_OPTIONS = [...DEFAULT_BASE_SPIRITS];
+let RETIRED_BASE_SPIRITS = [];
+
+const DEFAULT_TECHNIQUE_OPTIONS = ['Shaken','Stirred','Built','Blended','Layered','Muddled','Thrown','Swizzled'];
+let TECHNIQUE_OPTIONS = [...DEFAULT_TECHNIQUE_OPTIONS];
+let RETIRED_TECHNIQUES = [];
 
 const ICE_OPTIONS = ['Cubed','Crushed','Large Cube','Sphere','Block','Pebble','Shaved'];
 
@@ -1919,10 +1927,36 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.5';
+const APP_VERSION = '0.6';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.6',
+    title: 'Settings expansion & data updates',
+    userNotes: [
+      'Settings navigation is now a dropdown selector — supports Tags, Units, Garnishes, Glasses, Base Spirits, and Techniques',
+      'Base Spirit options are now manageable in Settings — add, rename, or remove spirit types',
+      'Technique options are now manageable in Settings — add, rename, or remove techniques',
+      'Updated default Spirit tags — 57 granular spirit types including sub-categories (Blanco Tequila, Spiced Rum, etc.)',
+      'Updated default Styles — added Martini, Mull, Daisy',
+      'New Origin tag category — Classic, Modern, Twist On Classic, Original',
+      'Updated Flavour tags — added Spicy, Coffee, Chocolate, Watermelon, Pineapple',
+      'Updated Strength tags — Strong, Low Alcohol, Non-Alcoholic',
+      'Updated Dietary tags — added Contains Egg, Contains Dairy, Contains Peanuts',
+      'Removed Occasion tag category',
+      'Updated garnish defaults — new Flamed category, expanded Citrus (cheeks, half wheels), more Fruit and Rim options',
+      'Expanded Base Spirit defaults — includes Amaretto, Campari, Aperol, Vermouth, Port, and more',
+    ],
+    items: [
+      'C100: Settings dropdown navigation (replaces tab buttons)',
+      'C98: Base Spirit managed list in Settings with add/rename/delete',
+      'C99: Technique managed list in Settings with add/rename/delete',
+      'C101: DEFAULT_GARNISH_GROUPS expanded (Flamed category, half wheels, cheeks, etc.)',
+      'C102: DEFAULT_TAG_GROUPS rewritten (granular spirits, Origin, expanded Flavour/Strength/Dietary, Occasion removed)',
+      'C103: DEFAULT_BASE_SPIRITS added (23 options including liqueurs/aperitifs)',
+    ]
+  },
   {
     version: '0.5',
     title: 'Critical save fix & prep field cleanup',
@@ -2833,6 +2867,10 @@ function buildSettingsObj() {
     garnishGroups: GARNISH_GROUPS,
     glassOptions: GLASS_OPTIONS,
     retiredGlasses: RETIRED_GLASSES,
+    baseSpiritOptions: BASE_SPIRIT_OPTIONS,
+    retiredBaseSpirits: RETIRED_BASE_SPIRITS,
+    techniqueOptions: TECHNIQUE_OPTIONS,
+    retiredTechniques: RETIRED_TECHNIQUES,
     customUnitGroups: (() => {
       const custom = {};
       for (const [grp, units] of Object.entries(UNIT_GROUPS)) {
@@ -2872,6 +2910,10 @@ function applySettingsObj(s) {
   if (s.garnishGroups) GARNISH_GROUPS = s.garnishGroups;
   if (s.glassOptions) GLASS_OPTIONS = s.glassOptions;
   if (s.retiredGlasses) RETIRED_GLASSES = s.retiredGlasses;
+  if (s.baseSpiritOptions) BASE_SPIRIT_OPTIONS = s.baseSpiritOptions;
+  if (s.retiredBaseSpirits) RETIRED_BASE_SPIRITS = s.retiredBaseSpirits;
+  if (s.techniqueOptions) TECHNIQUE_OPTIONS = s.techniqueOptions;
+  if (s.retiredTechniques) RETIRED_TECHNIQUES = s.retiredTechniques;
 }
 
 function loadSettings() {
@@ -2895,19 +2937,23 @@ async function saveSettings() {
 }
 
 function openSettings() {
-  renderStgTags();
-  renderStgUnits();
-  renderStgGarnishes();
-  renderStgGlasses();
+  document.getElementById('stg-nav').value = 'tags';
+  switchStgPane('tags');
   document.getElementById('settings-modal').classList.add('open');
 }
 function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
 
-function switchStgTab(name, btn) {
-  document.querySelectorAll('.stg-tab').forEach(t => t.classList.remove('active'));
+function switchStgPane(name) {
   document.querySelectorAll('.stg-pane').forEach(p => p.classList.remove('active'));
-  btn.classList.add('active');
-  document.getElementById('stg-pane-'+name).classList.add('active');
+  const pane = document.getElementById('stg-pane-'+name);
+  if (pane) pane.classList.add('active');
+  // Render on demand
+  if (name === 'tags') renderStgTags();
+  if (name === 'units') renderStgUnits();
+  if (name === 'garnishes') renderStgGarnishes();
+  if (name === 'glasses') renderStgGlasses();
+  if (name === 'spirits') renderStgBaseSpirits();
+  if (name === 'techniques') renderStgTechniques();
 }
 
 // ── SETTINGS: TAGS ────────────────────────────────────────────────────────
@@ -3363,7 +3409,7 @@ function executeRenameUnit(oldUnit, newUnit) {
 }
 
 // ── SETTINGS: GARNISHES ──────────────────────────────────────────────────
-let GARNISH_OPTIONS = ['Cherry','Grapefruit Peel','Grapefruit Wedge','Lemon Peel','Lemon Twist','Lemon Wedge','Lemon Wheel','Lime Peel','Lime Twist','Lime Wedge','Lime Wheel','Luxardo Cherry','Mint Sprig','Olive','Orange Peel','Orange Twist','Orange Wedge','Orange Wheel','Pineapple Wedge','Rosemary Sprig','Salt Rim','Sugar Rim','Basil Leaf','Thyme Sprig','Cocktail Onion','Cinnamon Stick','Nutmeg','Star Anise','Edible Flower','Cucumber Ribbon','Celery Stalk','Strawberry','Apple Slice','Dehydrated Lime','Dehydrated Orange','Dehydrated Lemon','Dehydrated Pineapple','Tajin Rim','Cocoa Rim'];
+let GARNISH_OPTIONS = ['Apple Slice','Banana Slice','Basil Leaf','Celery Stalk','Cherry','Chilli Rim','Chocolate Dusted Rim','Cinnamon Stick','Cocktail Onion','Coconut Rim','Cucumber Ribbon','Dehydrated Lemon','Dehydrated Lime','Dehydrated Orange','Dehydrated Pineapple','Edible Flower','Flamed Cinnamon Stick','Flamed Grapefruit Cheek','Flamed Grapefruit Peel','Flamed Lemon Cheek','Flamed Lemon Peel','Flamed Lime Cheek','Flamed Lime Peel','Flamed Orange Cheek','Flamed Orange Peel','Flamed Rosemary','Grapefruit 1/2 Wheel','Grapefruit Cheek','Grapefruit Peel','Grapefruit Twist','Grapefruit Wedge','Grapefruit Wheel','Grated Nutmeg','Lemon 1/2 Wheel','Lemon Cheek','Lemon Peel','Lemon Twist','Lemon Wedge','Lemon Wheel','Lime 1/2 Wheel','Lime Cheek','Lime Peel','Lime Twist','Lime Wedge','Lime Wheel','Luxardo Cherry','Maraschino Cherry','Mint Sprig','Olive','Orange 1/2 Wheel','Orange Cheek','Orange Peel','Orange Twist','Orange Wedge','Orange Wheel','Pear Slice','Pineapple Wedge','Rosemary Sprig','Salt Rim','Star Anise','Strawberry','Sugar Rim','Tajin Rim','Thyme Sprig','Watermelon Wedge'];
 let RETIRED_GARNISHES = [];
 let GARNISH_GROUPS = {}; // populated after DEFAULT_GARNISH_GROUPS is defined
 
@@ -3695,6 +3741,90 @@ function executeRenameGlass(oldG, newG) {
 }
 
 
+// ── SETTINGS: BASE SPIRITS ──────────────────────────────────────────────
+function renderStgBaseSpirits() {
+  const pane = document.getElementById('stg-pane-spirits');
+  if (!pane) return;
+  const active = BASE_SPIRIT_OPTIONS.filter(s => !RETIRED_BASE_SPIRITS.includes(s));
+  const pills = active.map(s => {
+    const safeS = esc(s).replace(/'/g, "\\'");
+    return `<span class="stg-tag">${esc(s)}<button onclick="startRenameBaseSpirit('${safeS}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button><button onclick="removeBaseSpirit('${safeS}')" title="Remove">×</button></span>`;
+  }).join('');
+  pane.innerHTML = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">Manage base spirit options for the edit form dropdown. These represent broad cocktail classifications. For granular spirit tagging, use the Spirit category in Tags.</div>
+    <div class="stg-group"><div class="stg-group-head"><span class="stg-group-name">Base Spirits</span></div>
+    <div class="stg-group-body" id="stg-spirit-body">${pills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No base spirits yet.</span>'}</div>
+    <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add base spirit…" id="new-spirit-input" onkeydown="if(event.key==='Enter'){addBaseSpirit();event.preventDefault()}"><button onclick="addBaseSpirit()">Add</button></div></div></div>`;
+}
+function addBaseSpirit() {
+  const input = document.getElementById('new-spirit-input'); const s = toTitleCase(input.value.trim()); if (!s) return;
+  if (BASE_SPIRIT_OPTIONS.map(x=>x.toLowerCase()).includes(s.toLowerCase())) {
+    if (RETIRED_BASE_SPIRITS.map(x=>x.toLowerCase()).includes(s.toLowerCase())) { RETIRED_BASE_SPIRITS = RETIRED_BASE_SPIRITS.filter(x=>x.toLowerCase()!==s.toLowerCase()); saveSettings(); renderStgBaseSpirits(); input.value=''; toast(`"${s}" restored`); return; }
+    toast(`"${s}" already exists`); return;
+  }
+  BASE_SPIRIT_OPTIONS.push(s); BASE_SPIRIT_OPTIONS.sort((a,b)=>a.localeCompare(b)); saveSettings(); renderStgBaseSpirits(); input.value=''; toast(`"${s}" added`);
+}
+function removeBaseSpirit(s) {
+  const affected = recipes.filter(r=>r.spirit===s).length;
+  if (affected>0) { showConfirm(`Remove "${s}"?`,`Used in ${affected} recipe${affected!==1?'s':''}.`,[
+    {label:'Remove from list only',danger:false,fn:()=>{if(!RETIRED_BASE_SPIRITS.includes(s))RETIRED_BASE_SPIRITS.push(s);saveSettings();renderStgBaseSpirits();toast(`"${s}" removed`);}},
+    {label:'Remove from all recipes',danger:true,fn:()=>{recipes.forEach(r=>{if(r.spirit===s)r.spirit=null;});if(!RETIRED_BASE_SPIRITS.includes(s))RETIRED_BASE_SPIRITS.push(s);saveSettings();syncToGist();renderStgBaseSpirits();toast(`"${s}" removed`);}},
+    {label:'Replace with\u2026',danger:false,fn:()=>openReplaceItemModal('spirit',s)}
+  ]); } else { showConfirm(`Remove "${s}"?`,'Not used in any recipes.',[{label:'Remove',danger:true,fn:()=>{if(!RETIRED_BASE_SPIRITS.includes(s))RETIRED_BASE_SPIRITS.push(s);saveSettings();renderStgBaseSpirits();toast(`"${s}" removed`);}}]); }
+}
+function startRenameBaseSpirit(s) {
+  const body=document.getElementById('stg-spirit-body'); if(!body)return;
+  for(const pill of body.querySelectorAll('.stg-tag')){if(pill.textContent.trim().startsWith(s)){const ew=document.createElement('span');ew.className='stg-tag-edit-wrap';const safe=s.replace(/'/g,"\\'");ew.innerHTML=`<input type="text" value="${esc(s)}" id="rename-spirit-input" onkeydown="if(event.key==='Enter')confirmRenameBaseSpirit('${safe}')"><button onclick="confirmRenameBaseSpirit('${safe}')">✓</button><button onclick="renderStgBaseSpirits()">✕</button>`;pill.replaceWith(ew);ew.querySelector('input').focus();ew.querySelector('input').select();break;}}
+}
+function confirmRenameBaseSpirit(oldS) {
+  const input=document.getElementById('rename-spirit-input'); if(!input)return; const newS=toTitleCase(input.value.trim());
+  if(!newS||newS===oldS){renderStgBaseSpirits();return;} if(BASE_SPIRIT_OPTIONS.map(x=>x.toLowerCase()).includes(newS.toLowerCase())&&newS.toLowerCase()!==oldS.toLowerCase()){toast(`"${newS}" already exists`);return;}
+  const count=recipes.filter(r=>r.spirit===oldS).length;
+  if(count>0){showConfirm('Rename across all recipes?',`"${oldS}" is used in ${count} recipe${count!==1?'s':''}.`,[{label:`Rename to "${newS}"`,danger:false,fn:()=>{BASE_SPIRIT_OPTIONS=BASE_SPIRIT_OPTIONS.map(x=>x===oldS?newS:x);RETIRED_BASE_SPIRITS=RETIRED_BASE_SPIRITS.map(x=>x===oldS?newS:x);recipes.forEach(r=>{if(r.spirit===oldS)r.spirit=newS;});saveSettings();syncToGist();renderStgBaseSpirits();toast(`"${oldS}" renamed to "${newS}"`);}}]);
+  } else {BASE_SPIRIT_OPTIONS=BASE_SPIRIT_OPTIONS.map(x=>x===oldS?newS:x);saveSettings();renderStgBaseSpirits();toast(`"${oldS}" renamed to "${newS}"`);}
+}
+
+// ── SETTINGS: TECHNIQUES ─────────────────────────────────────────────────
+function renderStgTechniques() {
+  const pane = document.getElementById('stg-pane-techniques'); if(!pane) return;
+  const active = TECHNIQUE_OPTIONS.filter(t=>!RETIRED_TECHNIQUES.includes(t));
+  const pills = active.map(t => {
+    const safeT = esc(t).replace(/'/g, "\\'");
+    return `<span class="stg-tag">${esc(t)}<button onclick="startRenameTechnique('${safeT}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button><button onclick="removeTechnique('${safeT}')" title="Remove">×</button></span>`;
+  }).join('');
+  pane.innerHTML = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">Manage technique options for the edit form dropdown.</div>
+    <div class="stg-group"><div class="stg-group-head"><span class="stg-group-name">Techniques</span></div>
+    <div class="stg-group-body" id="stg-technique-body">${pills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No techniques yet.</span>'}</div>
+    <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add technique…" id="new-technique-input" onkeydown="if(event.key==='Enter'){addTechnique();event.preventDefault()}"><button onclick="addTechnique()">Add</button></div></div></div>`;
+}
+function addTechnique() {
+  const input=document.getElementById('new-technique-input'); const t=toTitleCase(input.value.trim()); if(!t) return;
+  if(TECHNIQUE_OPTIONS.map(x=>x.toLowerCase()).includes(t.toLowerCase())){
+    if(RETIRED_TECHNIQUES.map(x=>x.toLowerCase()).includes(t.toLowerCase())){RETIRED_TECHNIQUES=RETIRED_TECHNIQUES.filter(x=>x.toLowerCase()!==t.toLowerCase());saveSettings();renderStgTechniques();input.value='';toast(`"${t}" restored`);return;}
+    toast(`"${t}" already exists`);return;
+  }
+  TECHNIQUE_OPTIONS.push(t);saveSettings();renderStgTechniques();input.value='';toast(`"${t}" added`);
+}
+function removeTechnique(t) {
+  const affected=recipes.filter(r=>r.technique===t).length;
+  if(affected>0){showConfirm(`Remove "${t}"?`,`Used in ${affected} recipe${affected!==1?'s':''}.`,[
+    {label:'Remove from list only',danger:false,fn:()=>{if(!RETIRED_TECHNIQUES.includes(t))RETIRED_TECHNIQUES.push(t);saveSettings();renderStgTechniques();toast(`"${t}" removed`);}},
+    {label:'Remove from all recipes',danger:true,fn:()=>{recipes.forEach(r=>{if(r.technique===t)r.technique=null;});if(!RETIRED_TECHNIQUES.includes(t))RETIRED_TECHNIQUES.push(t);saveSettings();syncToGist();renderStgTechniques();toast(`"${t}" removed`);}},
+    {label:'Replace with\u2026',danger:false,fn:()=>openReplaceItemModal('technique',t)}
+  ]);} else {showConfirm(`Remove "${t}"?`,'Not used in any recipes.',[{label:'Remove',danger:true,fn:()=>{if(!RETIRED_TECHNIQUES.includes(t))RETIRED_TECHNIQUES.push(t);saveSettings();renderStgTechniques();toast(`"${t}" removed`);}}]);}
+}
+function startRenameTechnique(t) {
+  const body=document.getElementById('stg-technique-body'); if(!body)return;
+  for(const pill of body.querySelectorAll('.stg-tag')){if(pill.textContent.trim().startsWith(t)){const ew=document.createElement('span');ew.className='stg-tag-edit-wrap';const safe=t.replace(/'/g,"\\'");ew.innerHTML=`<input type="text" value="${esc(t)}" id="rename-technique-input" onkeydown="if(event.key==='Enter')confirmRenameTechnique('${safe}')"><button onclick="confirmRenameTechnique('${safe}')">✓</button><button onclick="renderStgTechniques()">✕</button>`;pill.replaceWith(ew);ew.querySelector('input').focus();ew.querySelector('input').select();break;}}
+}
+function confirmRenameTechnique(oldT) {
+  const input=document.getElementById('rename-technique-input'); if(!input)return; const newT=toTitleCase(input.value.trim());
+  if(!newT||newT===oldT){renderStgTechniques();return;} if(TECHNIQUE_OPTIONS.map(x=>x.toLowerCase()).includes(newT.toLowerCase())&&newT.toLowerCase()!==oldT.toLowerCase()){toast(`"${newT}" already exists`);return;}
+  const count=recipes.filter(r=>r.technique===oldT).length;
+  if(count>0){showConfirm('Rename across all recipes?',`"${oldT}" is used in ${count} recipe${count!==1?'s':''}.`,[{label:`Rename to "${newT}"`,danger:false,fn:()=>{TECHNIQUE_OPTIONS=TECHNIQUE_OPTIONS.map(x=>x===oldT?newT:x);RETIRED_TECHNIQUES=RETIRED_TECHNIQUES.map(x=>x===oldT?newT:x);recipes.forEach(r=>{if(r.technique===oldT)r.technique=newT;});saveSettings();syncToGist();renderStgTechniques();toast(`"${oldT}" renamed to "${newT}"`);}}]);
+  } else {TECHNIQUE_OPTIONS=TECHNIQUE_OPTIONS.map(x=>x===oldT?newT:x);saveSettings();renderStgTechniques();toast(`"${oldT}" renamed to "${newT}"`);}
+}
+
+
 // ── REPLACE ITEM MODAL (generic for units, glasses, garnishes) ───────────
 let _replaceItemCtx = null; // { type: 'unit'|'glass'|'garnish', item, group? }
 
@@ -3718,6 +3848,10 @@ function openReplaceItemModal(type, item, group) {
     options = GLASS_OPTIONS.filter(g => g !== item && !RETIRED_GLASSES.includes(g));
   } else if (type === 'garnish') {
     options = Object.values(GARNISH_GROUPS).flat().filter(g => g !== item);
+  } else if (type === 'spirit') {
+    options = BASE_SPIRIT_OPTIONS.filter(s => s !== item && !RETIRED_BASE_SPIRITS.includes(s));
+  } else if (type === 'technique') {
+    options = TECHNIQUE_OPTIONS.filter(t => t !== item && !RETIRED_TECHNIQUES.includes(t));
   }
   tagSelect.innerHTML = options.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('') || '<option value="">\u2014 none available \u2014</option>';
 
@@ -3765,6 +3899,14 @@ function confirmReplaceItem() {
       }
     });
     doRemoveGarnish(group, item, false);
+  } else if (type === 'spirit') {
+    recipes.forEach(r => { if (r.spirit === item) r.spirit = replacement; });
+    if (!RETIRED_BASE_SPIRITS.includes(item)) RETIRED_BASE_SPIRITS.push(item);
+    saveSettings(); renderStgBaseSpirits();
+  } else if (type === 'technique') {
+    recipes.forEach(r => { if (r.technique === item) r.technique = replacement; });
+    if (!RETIRED_TECHNIQUES.includes(item)) RETIRED_TECHNIQUES.push(item);
+    saveSettings(); renderStgTechniques();
   }
   syncToGist();
   toast(`"${item}" replaced with "${replacement}"`);
@@ -4524,12 +4666,13 @@ function getIceValue() {
 // ── GARNISH PILLS (multi-select) ─────────────────────────────────────────
 
 const DEFAULT_GARNISH_GROUPS = {
-  'Citrus':      ['Lemon Peel','Lemon Twist','Lemon Wedge','Lemon Wheel','Lime Peel','Lime Twist','Lime Wedge','Lime Wheel','Orange Peel','Orange Twist','Orange Wedge','Orange Wheel','Grapefruit Peel','Grapefruit Wedge'],
-  'Fruit':       ['Cherry','Luxardo Cherry','Pineapple Wedge','Strawberry','Apple Slice','Banana'],
+  'Citrus':      ['Lemon Peel','Lemon Twist','Lemon Wedge','Lemon Wheel','Lemon 1/2 Wheel','Lemon Cheek','Lime Peel','Lime Twist','Lime Wedge','Lime Wheel','Lime 1/2 Wheel','Lime Cheek','Orange Peel','Orange Twist','Orange Wedge','Orange Wheel','Orange 1/2 Wheel','Orange Cheek','Grapefruit Peel','Grapefruit Twist','Grapefruit Wedge','Grapefruit Wheel','Grapefruit 1/2 Wheel','Grapefruit Cheek'],
+  'Fruit':       ['Cherry','Luxardo Cherry','Maraschino Cherry','Pineapple Wedge','Strawberry','Apple Slice','Pear Slice','Banana Slice','Watermelon Wedge'],
   'Herbs':       ['Mint Sprig','Rosemary Sprig','Basil Leaf','Thyme Sprig'],
-  'Rims':        ['Salt Rim','Sugar Rim','Tajin Rim','Cocoa Rim'],
+  'Rims':        ['Salt Rim','Sugar Rim','Chilli Rim','Tajin Rim','Chocolate Dusted Rim','Coconut Rim'],
   'Dehydrates':  ['Dehydrated Lime','Dehydrated Orange','Dehydrated Lemon','Dehydrated Pineapple'],
-  'Other':       ['Olive','Cocktail Onion','Cinnamon Stick','Nutmeg','Star Anise','Edible Flower','Cucumber Ribbon','Celery Stalk']
+  'Flamed':      ['Flamed Lime Peel','Flamed Lime Cheek','Flamed Lemon Peel','Flamed Lemon Cheek','Flamed Orange Peel','Flamed Orange Cheek','Flamed Grapefruit Peel','Flamed Grapefruit Cheek','Flamed Rosemary','Flamed Cinnamon Stick'],
+  'Other':       ['Olive','Cocktail Onion','Cinnamon Stick','Grated Nutmeg','Star Anise','Edible Flower','Cucumber Ribbon','Celery Stalk']
 };
 GARNISH_GROUPS = JSON.parse(JSON.stringify(DEFAULT_GARNISH_GROUPS));
 
@@ -5522,20 +5665,29 @@ function openEdit(r) {
   // Ice dropdown
   populateIceSelect(r?.ice || '');
 
-  // Spirit dropdown — populate from Spirit tag group
+  // Spirit dropdown — populate from BASE_SPIRIT_OPTIONS
   const spiritSel = document.getElementById('f-spirit');
-  const spiritTags = TAG_GROUPS['Spirit'] || [];
-  spiritSel.innerHTML = '<option value="">— none —</option>' + spiritTags.map(s =>
-    `<option value="${esc(s)}"${r?.spirit === s ? ' selected' : ''}>${esc(s)}</option>`
-  ).join('');
-  if (r?.spirit) spiritSel.value = r.spirit;
+  const activeSpiritsOpts = BASE_SPIRIT_OPTIONS.filter(s => !RETIRED_BASE_SPIRITS.includes(s));
+  const spiritVal = r?.spirit || '';
+  const isInList = activeSpiritsOpts.includes(spiritVal);
+  const isRetired = RETIRED_BASE_SPIRITS.includes(spiritVal);
+  spiritSel.innerHTML = '<option value="">— none —</option>' +
+    activeSpiritsOpts.map(s => `<option value="${esc(s)}"${spiritVal === s ? ' selected' : ''}>${esc(s)}</option>`).join('') +
+    (spiritVal && !isInList && !isRetired ? `<option value="${esc(spiritVal)}" selected>${esc(spiritVal)}</option>` : '') +
+    (isRetired ? `<option value="${esc(spiritVal)}" selected>${esc(spiritVal)} (retired)</option>` : '');
+  if (spiritVal) spiritSel.value = spiritVal;
 
-  // Technique dropdown
+  // Technique dropdown — populate from managed list
   const techSel = document.getElementById('f-technique');
-  techSel.innerHTML = '<option value="">— select —</option>' + TECHNIQUE_OPTIONS.map(t =>
-    `<option value="${esc(t)}"${r?.technique === t ? ' selected' : ''}>${esc(t)}</option>`
-  ).join('');
-  if (r?.technique) techSel.value = r.technique;
+  const activeTechs = TECHNIQUE_OPTIONS.filter(t => !RETIRED_TECHNIQUES.includes(t));
+  const techVal = r?.technique || '';
+  const techInList = activeTechs.includes(techVal);
+  const techRetired = RETIRED_TECHNIQUES.includes(techVal);
+  techSel.innerHTML = '<option value="">— select —</option>' +
+    activeTechs.map(t => `<option value="${esc(t)}"${techVal === t ? ' selected' : ''}>${esc(t)}</option>`).join('') +
+    (techVal && !techInList && !techRetired ? `<option value="${esc(techVal)}" selected>${esc(techVal)}</option>` : '') +
+    (techRetired ? `<option value="${esc(techVal)}" selected>${esc(techVal)} (retired)</option>` : '');
+  if (techVal) techSel.value = techVal;
 
   // Scalable toggle
   const scalable = r?.scalable !== false;
