@@ -1148,6 +1148,8 @@ header{
 .stg-unit-btns button.retire-btn:hover{border-color:var(--warning);color:var(--warning)}
 .stg-unit-btns button.restore-btn{border-color:var(--accent);color:var(--accent)}
 .stg-unit-btns button.restore-btn:hover{background:var(--accent-light)}
+.stg-unit-btns button.rename-btn{border-color:var(--border);color:var(--ink-faint);font-size:0.85rem;padding:1px 5px}
+.stg-unit-btns button.rename-btn:hover{border-color:var(--accent);color:var(--accent-text)}
 /* confirm danger dialog */
 .confirm-overlay{
   display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);
@@ -1344,7 +1346,10 @@ header{
         </div>
         <div class="fg">
           <label>Garnish</label>
-          <input type="text" id="f-garnish" placeholder="e.g. lime wheel, salt rim" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit garnish')">
+          <select id="f-garnish" onfocus="preCaptureSnapshot()" onchange="handleGarnishSelect(this)">
+            <option value="">— none —</option>
+          </select>
+          <input type="text" id="f-garnish-manual" placeholder="Type garnish…" style="display:none;margin-top:4px" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit garnish')">
         </div>
       </div>
 
@@ -1777,11 +1782,14 @@ header{
       <div class="stg-tabs">
         <button class="stg-tab active" onclick="switchStgTab('tags',this)">Tags</button>
         <button class="stg-tab" onclick="switchStgTab('units',this)">Units</button>
+        <button class="stg-tab" onclick="switchStgTab('garnishes',this)">Garnishes</button>
       </div>
       <!-- TAGS PANE -->
       <div class="stg-pane active" id="stg-pane-tags"></div>
       <!-- UNITS PANE -->
       <div class="stg-pane" id="stg-pane-units"></div>
+      <!-- GARNISHES PANE -->
+      <div class="stg-pane" id="stg-pane-garnishes"></div>
     </div>
     <div class="form-foot">
       <button class="btn-sec" onclick="closeSettings()">Done</button>
@@ -2126,7 +2134,7 @@ function _serializeForm() {
     tags:     [...formTags],
     glass:    document.getElementById('f-glass')?.value   || '',
     frozen:   document.getElementById('frozen-toggle')?.classList.contains('on') || false,
-    garnish:  document.getElementById('f-garnish')?.value || '',
+    garnish:  getGarnishValue(),
     spirit:   document.getElementById('f-spirit')?.value  || '',
     technique: document.getElementById('f-technique')?.value || '',
     stdDrinks: document.getElementById('f-std-drinks')?.value || '',
@@ -2176,7 +2184,7 @@ function applyFormSnapshot(snapshot) {
   formTags = [...snapshot.tags];
   renderFormTags();
   if (document.getElementById('f-glass'))     document.getElementById('f-glass').value     = snapshot.glass || '';
-  if (document.getElementById('f-garnish'))   document.getElementById('f-garnish').value   = snapshot.garnish || '';
+  populateGarnishSelect(snapshot.garnish || '');
   if (document.getElementById('f-spirit'))    document.getElementById('f-spirit').value    = snapshot.spirit || '';
   if (document.getElementById('f-technique')) document.getElementById('f-technique').value = snapshot.technique || '';
   if (document.getElementById('f-std-drinks')) document.getElementById('f-std-drinks').value = snapshot.stdDrinks || '';
@@ -2707,6 +2715,8 @@ function buildSettingsObj() {
   return {
     customTagGroups,
     retiredUnits: RETIRED_UNITS,
+    garnishOptions: GARNISH_OPTIONS,
+    retiredGarnishes: RETIRED_GARNISHES,
     customUnitGroups: (() => {
       const custom = {};
       for (const [grp, units] of Object.entries(UNIT_GROUPS)) {
@@ -2741,6 +2751,8 @@ function applySettingsObj(s) {
     }
   }
   if (s.retiredUnits) RETIRED_UNITS = s.retiredUnits;
+  if (s.garnishOptions) GARNISH_OPTIONS = s.garnishOptions;
+  if (s.retiredGarnishes) RETIRED_GARNISHES = s.retiredGarnishes;
 }
 
 function loadSettings() {
@@ -2766,6 +2778,7 @@ async function saveSettings() {
 function openSettings() {
   renderStgTags();
   renderStgUnits();
+  renderStgGarnishes();
   document.getElementById('settings-modal').classList.add('open');
 }
 function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
@@ -3068,13 +3081,14 @@ function renderStgUnits() {
 
   const rows = customUnits.map(u => {
     const retired = RETIRED_UNITS.includes(u);
-    const isDefault = (DEFAULT_UNIT_GROUPS['Custom units'] || []).includes(u);
+    const safeU = esc(u).replace(/'/g,"\\'");
     return `<div class="stg-unit-row${retired?' retired':''}">
-      <span class="unit-name${retired?' retired-lbl':''}">${esc(u)}</span>
+      <span class="unit-name${retired?' retired-lbl':''}" id="unit-label-${esc(u)}">${esc(u)}</span>
       <div class="stg-unit-btns">
+        ${!retired ? `<button class="rename-btn" onclick="startRenameUnit('${safeU}')" title="Rename">\u270e</button>` : ''}
         ${retired
-          ? `<button class="restore-btn" onclick="restoreUnit('${esc(u)}')">Restore</button>`
-          : `<button class="retire-btn" onclick="retireUnit('${esc(u)}')">Retire</button>`
+          ? `<button class="restore-btn" onclick="restoreUnit('${safeU}')">Restore</button>`
+          : `<button class="retire-btn" onclick="retireUnit('${safeU}')">Retire</button>`
         }
       </div>
     </div>`;
@@ -3083,12 +3097,12 @@ function renderStgUnits() {
   pane.innerHTML = `
     <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6">
       Custom units appear in the ingredient unit dropdown alongside Volume and Mass.
-      Retiring a unit hides it from new entries but keeps it in existing recipes. Restore it anytime.
+      Retiring a unit hides it from new entries but keeps it in existing recipes. Use \u270e to rename.
     </div>
     <div class="stg-unit-group">
       <div class="stg-unit-list">${rows || '<div style="font-size:0.8rem;color:var(--ink-faint);padding:4px 0">No custom units yet.</div>'}</div>
       <div class="stg-add-row" style="margin-top:0.4rem">
-        <input type="text" placeholder="Add custom unit…" id="new-unit-Custom units"
+        <input type="text" placeholder="Add custom unit\u2026" id="new-unit-Custom units"
           onkeydown="if(event.key==='Enter'){addUnitToGroup('Custom units');event.preventDefault()}">
         <button onclick="addUnitToGroup('Custom units')">Add</button>
       </div>
@@ -3123,6 +3137,178 @@ function restoreUnit(unit) {
   saveSettings();
   renderStgUnits();
   toast(`"${unit}" restored`);
+}
+
+// C85: Rename custom unit with inline edit
+function startRenameUnit(unit) {
+  const label = document.getElementById('unit-label-' + unit);
+  if (!label) return;
+  const editWrap = document.createElement('span');
+  editWrap.className = 'stg-tag-edit-wrap';
+  const safeUnit = unit.replace(/'/g, "\\'");
+  editWrap.innerHTML = `
+    <input type="text" value="${esc(unit)}" id="rename-unit-input"
+      onkeydown="if(event.key==='Enter')confirmRenameUnit('${safeUnit}')">
+    <button onclick="confirmRenameUnit('${safeUnit}')">\u2713</button>
+    <button onclick="renderStgUnits()">\u2715</button>`;
+  label.replaceWith(editWrap);
+  editWrap.querySelector('input').focus();
+  editWrap.querySelector('input').select();
+}
+
+function confirmRenameUnit(oldUnit) {
+  const input = document.getElementById('rename-unit-input');
+  if (!input) return;
+  const newUnit = input.value.trim();
+  if (!newUnit || newUnit === oldUnit) { renderStgUnits(); return; }
+  if (Object.values(UNIT_GROUPS).flat().map(u=>u.toLowerCase()).includes(newUnit.toLowerCase()) && newUnit.toLowerCase() !== oldUnit.toLowerCase()) {
+    toast(`"${newUnit}" already exists`); return;
+  }
+  const count = recipes.filter(r =>
+    r.ingredients?.some(sec => sec.items?.some(item =>
+      item.unit === oldUnit || item.substitutes?.some(s => s.unit === oldUnit)
+    ))
+  ).length;
+
+  if (count > 0) {
+    showConfirm(
+      'Rename unit across all recipes?',
+      `"${oldUnit}" is used in ${count} recipe${count!==1?'s':''}. Renaming will update all of them. If you only want the new name for future recipes, consider retiring "${oldUnit}" and creating "${newUnit}" as a new unit instead.`,
+      [{ label: `Rename to "${newUnit}"`, danger: false, fn: () => executeRenameUnit(oldUnit, newUnit) }]
+    );
+  } else {
+    executeRenameUnit(oldUnit, newUnit);
+  }
+}
+
+function executeRenameUnit(oldUnit, newUnit) {
+  for (const group of Object.keys(UNIT_GROUPS)) {
+    UNIT_GROUPS[group] = UNIT_GROUPS[group].map(u => u === oldUnit ? newUnit : u);
+  }
+  RETIRED_UNITS = RETIRED_UNITS.map(u => u === oldUnit ? newUnit : u);
+  recipes.forEach(r => {
+    r.ingredients?.forEach(sec => sec.items?.forEach(item => {
+      if (item.unit === oldUnit) item.unit = newUnit;
+      item.substitutes?.forEach(s => { if (s.unit === oldUnit) s.unit = newUnit; });
+      if (item.scaleOverrides) {
+        for (const key of Object.keys(item.scaleOverrides)) {
+          const ov = item.scaleOverrides[key];
+          if (ov && ov.unit === oldUnit) ov.unit = newUnit;
+        }
+      }
+    }));
+  });
+  saveSettings();
+  syncToGist();
+  renderStgUnits();
+  toast(`"${oldUnit}" renamed to "${newUnit}"`);
+}
+
+// ── SETTINGS: GARNISHES ──────────────────────────────────────────────────
+let GARNISH_OPTIONS = ['Cherry','Lemon Peel','Lemon Twist','Lemon Wedge','Lemon Wheel','Lime Peel','Lime Twist','Lime Wedge','Lime Wheel','Luxardo Cherry','Mint Sprig','Olive','Orange Peel','Orange Twist','Orange Wedge','Orange Wheel','Pineapple Wedge','Rosemary Sprig','Salt Rim','Sugar Rim'];
+let RETIRED_GARNISHES = [];
+
+function renderStgGarnishes() {
+  const pane = document.getElementById('stg-pane-garnishes');
+  if (!pane) return;
+
+  const rows = GARNISH_OPTIONS.map(g => {
+    const retired = RETIRED_GARNISHES.includes(g);
+    const safeG = esc(g).replace(/'/g, "\\'");
+    const safeId = esc(g).replace(/\s+/g, '_');
+    return `<div class="stg-unit-row${retired?' retired':''}">
+      <span class="unit-name${retired?' retired-lbl':''}" id="garnish-label-${safeId}">${esc(g)}</span>
+      <div class="stg-unit-btns">
+        ${!retired ? `<button class="rename-btn" onclick="startRenameGarnish('${safeG}')" title="Rename">\u270e</button>` : ''}
+        ${retired
+          ? `<button class="restore-btn" onclick="restoreGarnish('${safeG}')">Restore</button>`
+          : `<button class="retire-btn" onclick="retireGarnish('${safeG}')">Retire</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+
+  pane.innerHTML = `
+    <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6">
+      Manage garnish options for the edit form dropdown. Retiring hides from new entries but keeps in existing recipes. Use \u270e to rename.
+    </div>
+    <div class="stg-unit-group">
+      <div class="stg-unit-list">${rows || '<div style="font-size:0.8rem;color:var(--ink-faint);padding:4px 0">No garnishes yet.</div>'}</div>
+      <div class="stg-add-row" style="margin-top:0.4rem">
+        <input type="text" placeholder="Add garnish\u2026" id="new-garnish-input"
+          onkeydown="if(event.key==='Enter'){addGarnish();event.preventDefault()}">
+        <button onclick="addGarnish()">Add</button>
+      </div>
+    </div>`;
+}
+
+function addGarnish() {
+  const input = document.getElementById('new-garnish-input');
+  const g = toTitleCase(input.value.trim());
+  if (!g) return;
+  if (GARNISH_OPTIONS.map(x=>x.toLowerCase()).includes(g.toLowerCase())) {
+    toast(`"${g}" already exists`); return;
+  }
+  GARNISH_OPTIONS.push(g);
+  GARNISH_OPTIONS.sort((a,b) => a.localeCompare(b));
+  RETIRED_GARNISHES = RETIRED_GARNISHES.filter(x => x.toLowerCase() !== g.toLowerCase());
+  saveSettings();
+  renderStgGarnishes();
+  input.value = '';
+  toast(`"${g}" added`);
+}
+
+function retireGarnish(g) {
+  if (!RETIRED_GARNISHES.includes(g)) RETIRED_GARNISHES.push(g);
+  saveSettings();
+  renderStgGarnishes();
+  toast(`"${g}" retired`);
+}
+
+function restoreGarnish(g) {
+  RETIRED_GARNISHES = RETIRED_GARNISHES.filter(x => x !== g);
+  saveSettings();
+  renderStgGarnishes();
+  toast(`"${g}" restored`);
+}
+
+function startRenameGarnish(g) {
+  const safeId = esc(g).replace(/\s+/g, '_');
+  const label = document.getElementById('garnish-label-' + safeId);
+  if (!label) return;
+  const editWrap = document.createElement('span');
+  editWrap.className = 'stg-tag-edit-wrap';
+  const safeG = g.replace(/'/g, "\\'");
+  editWrap.innerHTML = `
+    <input type="text" value="${esc(g)}" id="rename-garnish-input"
+      onkeydown="if(event.key==='Enter')confirmRenameGarnish('${safeG}')">
+    <button onclick="confirmRenameGarnish('${safeG}')">\u2713</button>
+    <button onclick="renderStgGarnishes()">\u2715</button>`;
+  label.replaceWith(editWrap);
+  editWrap.querySelector('input').focus();
+  editWrap.querySelector('input').select();
+}
+
+function confirmRenameGarnish(oldG) {
+  const input = document.getElementById('rename-garnish-input');
+  if (!input) return;
+  const newG = toTitleCase(input.value.trim());
+  if (!newG || newG === oldG) { renderStgGarnishes(); return; }
+  if (GARNISH_OPTIONS.map(x=>x.toLowerCase()).includes(newG.toLowerCase()) && newG.toLowerCase() !== oldG.toLowerCase()) {
+    toast(`"${newG}" already exists`); return;
+  }
+  GARNISH_OPTIONS = GARNISH_OPTIONS.map(x => x === oldG ? newG : x);
+  GARNISH_OPTIONS.sort((a,b) => a.localeCompare(b));
+  RETIRED_GARNISHES = RETIRED_GARNISHES.map(x => x === oldG ? newG : x);
+  recipes.forEach(r => {
+    if (r.garnish && r.garnish.includes(oldG)) {
+      r.garnish = r.garnish.replace(new RegExp(oldG.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newG);
+    }
+  });
+  saveSettings();
+  syncToGist();
+  renderStgGarnishes();
+  toast(`"${oldG}" renamed to "${newG}"`);
 }
 
 // ── CONFIRM DIALOG ────────────────────────────────────────────────────────
@@ -3745,6 +3931,50 @@ function updateSearchClear() {
   const btnM = document.getElementById('search-clear-mobile');
   if (btn) btn.classList.toggle('show', !!val);
   if (btnM) btnM.classList.toggle('show', !!val);
+}
+
+// ── GARNISH SELECT ───────────────────────────────────────────────────────
+function handleGarnishSelect(sel) {
+  const manual = document.getElementById('f-garnish-manual');
+  if (sel.value === '__manual__') {
+    manual.style.display = '';
+    manual.focus();
+  } else {
+    manual.style.display = 'none';
+    manual.value = '';
+    captureFormSnapshot('Change garnish');
+  }
+}
+
+function getGarnishValue() {
+  const sel = document.getElementById('f-garnish');
+  if (sel.value === '__manual__') {
+    return document.getElementById('f-garnish-manual')?.value.trim() || '';
+  }
+  return sel.value || '';
+}
+
+function populateGarnishSelect(currentValue) {
+  const sel = document.getElementById('f-garnish');
+  const manual = document.getElementById('f-garnish-manual');
+  const activeGarnishes = GARNISH_OPTIONS.filter(g => !RETIRED_GARNISHES.includes(g));
+  // If current value is not in the list (manual entry or retired), include it
+  const isInList = activeGarnishes.some(g => g === currentValue);
+  const isRetired = RETIRED_GARNISHES.includes(currentValue);
+
+  sel.innerHTML = '<option value="">— none —</option>' +
+    activeGarnishes.map(g => `<option value="${esc(g)}"${currentValue === g ? ' selected' : ''}>${esc(g)}</option>`).join('') +
+    (currentValue && !isInList && !isRetired ? `<option value="${esc(currentValue)}" selected>${esc(currentValue)}</option>` : '') +
+    (isRetired ? `<option value="${esc(currentValue)}" selected>${esc(currentValue)} (retired)</option>` : '') +
+    '<option value="__manual__">Type manually…</option>';
+
+  if (currentValue && !isInList && !isRetired) {
+    // Value was manually typed previously — keep it selected
+  }
+  if (manual) {
+    manual.style.display = 'none';
+    manual.value = '';
+  }
 }
 
 // ── FROZEN GLASS TOGGLE ──────────────────────────────────────────────────
@@ -4626,8 +4856,8 @@ function openEdit(r) {
   const frozenBtn = document.getElementById('frozen-toggle');
   if (frozenBtn) frozenBtn.classList.toggle('on', !!r?.glassFrozen);
 
-  // Garnish, standard drinks
-  document.getElementById('f-garnish').value = r?.garnish || '';
+  // Garnish dropdown, standard drinks
+  populateGarnishSelect(r?.garnish || '');
   document.getElementById('f-std-drinks').value = r?.standardDrinks ?? '';
 
   // Spirit dropdown — populate from Spirit tag group
@@ -5012,7 +5242,7 @@ async function saveRecipe() {
     technique: document.getElementById('f-technique')?.value || null,
     glass: document.getElementById('f-glass').value || null,
     glassFrozen: document.getElementById('frozen-toggle')?.classList.contains('on') || false,
-    garnish: document.getElementById('f-garnish').value.trim() || null,
+    garnish: getGarnishValue() || null,
     standardDrinks: parseFloat(document.getElementById('f-std-drinks').value) || null,
     scalable,
     allowedScales: scalable ? {
