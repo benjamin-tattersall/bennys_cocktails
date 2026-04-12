@@ -1336,9 +1336,10 @@ header{
         <div class="fg">
           <label>Glass</label>
           <div style="display:flex;gap:6px;align-items:stretch">
-            <select id="f-glass" style="flex:1" onfocus="preCaptureSnapshot()" onchange="captureFormSnapshot('Change glass')">
+            <select id="f-glass" style="flex:1" onfocus="preCaptureSnapshot()" onchange="handleGlassSelect(this)">
               <option value="">— select —</option>
             </select>
+            <input type="text" id="f-glass-manual" placeholder="Type glass…" style="display:none;flex:1" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit glass')">
             <button type="button" class="frozen-toggle" id="frozen-toggle" onclick="toggleFrozen()" title="Frozen glass">
               <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/><line x1="2.5" y1="2.5" x2="9.5" y2="9.5"/><line x1="9.5" y1="2.5" x2="2.5" y2="9.5"/></svg>
             </button>
@@ -1346,10 +1347,12 @@ header{
         </div>
         <div class="fg">
           <label>Garnish</label>
-          <select id="f-garnish" onfocus="preCaptureSnapshot()" onchange="handleGarnishSelect(this)">
-            <option value="">— none —</option>
-          </select>
-          <input type="text" id="f-garnish-manual" placeholder="Type garnish…" style="display:none;margin-top:4px" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit garnish')">
+          <div class="tags-wrap">
+            <div class="tags-input-box" id="garnish-box" onclick="document.getElementById('garnish-input').focus()">
+              <input type="text" id="garnish-input" placeholder="Add garnish…" autocomplete="off" onkeydown="garnishKeydown(event)" oninput="garnishInputFn(event)" onfocus="garnishFocus()">
+            </div>
+            <div class="tag-sugs" id="garnish-sugs"></div>
+          </div>
         </div>
       </div>
 
@@ -1783,6 +1786,7 @@ header{
         <button class="stg-tab active" onclick="switchStgTab('tags',this)">Tags</button>
         <button class="stg-tab" onclick="switchStgTab('units',this)">Units</button>
         <button class="stg-tab" onclick="switchStgTab('garnishes',this)">Garnishes</button>
+        <button class="stg-tab" onclick="switchStgTab('glasses',this)">Glasses</button>
       </div>
       <!-- TAGS PANE -->
       <div class="stg-pane active" id="stg-pane-tags"></div>
@@ -1790,6 +1794,8 @@ header{
       <div class="stg-pane" id="stg-pane-units"></div>
       <!-- GARNISHES PANE -->
       <div class="stg-pane" id="stg-pane-garnishes"></div>
+      <!-- GLASSES PANE -->
+      <div class="stg-pane" id="stg-pane-glasses"></div>
     </div>
     <div class="form-foot">
       <button class="btn-sec" onclick="closeSettings()">Done</button>
@@ -1877,11 +1883,13 @@ const DEFAULT_UNIT_GROUPS = {
   'Custom units': ['whole','piece','slice','sprig','leaf','drop','dash','barspoon','rinse','float','top']
 };
 
-const GLASS_OPTIONS = [
+const DEFAULT_GLASS_OPTIONS = [
   'Rocks','Double Rocks','Highball','Collins','Coupe','Martini',
   'Nick & Nora','Wine','Flute','Hurricane','Tiki','Copper Mug',
   'Shot','Snifter','Glencairn','Julep Cup','Punch Cup','Other'
 ];
+let GLASS_OPTIONS = [...DEFAULT_GLASS_OPTIONS];
+let RETIRED_GLASSES = [];
 
 const TECHNIQUE_OPTIONS = ['Shaken','Stirred','Built','Blended','Layered','Muddled','Thrown','Swizzled'];
 
@@ -1894,10 +1902,42 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.1';
+const APP_VERSION = '0.2';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.2',
+    title: 'Core features, filters & settings',
+    userNotes: [
+      'Main Spirit field — set the base spirit for each cocktail, displayed on recipe cards',
+      'Technique field — choose Shaken, Stirred, Built, Blended, Layered, Muddled, Thrown, or Swizzled',
+      'Frozen glass toggle — mark glasses as frozen with a snowflake indicator',
+      'Scaling extended to 5× — make up to 5 cocktails at once',
+      'New filter system — filter by Base Spirit, Standard Drinks, Technique, and Glass type',
+      'Smart group-by — only shows grouping options that have matching recipes. New: group by Glass or Technique',
+      'Search clear button — quickly clear your search with the × button',
+      'Glass types manageable in Settings — add, rename, retire glass types',
+      'Garnish selection — choose from a managed garnish list with categories, or type your own',
+      'Custom unit renaming — rename units in Settings with automatic update across all recipes',
+      'Equipment label — "Utensils" renamed to "Equipment Required"',
+      'Removed prep time, serves/makes, ABV, YouTube, and source URL fields to streamline the cocktail form',
+    ],
+    items: [
+      'C50-C58: Removals — prep field, prep time, serves, ABV, YouTube, source URL, cl unit, dash/barspoon moved to custom',
+      'C62: Main Spirit dropdown populated from Spirit tag group',
+      'C63: Technique dropdown (8 options)',
+      'C65: Scale bar extended to 5× with quadruple/quintuple in allowedScales + overrideKey',
+      'C66: Utensils → Equipment (form) / Equipment Required (view)',
+      'C67: Smart group-by with Glass + Technique options, removed Cook Time/Serves',
+      'C68: Frozen glass toggle with snowflake icon (5×5px, light blue)',
+      'C69: Search clear button on desktop + mobile',
+      'C85: Custom unit inline rename with propagation warning',
+      'C86b: Garnish pill multi-select with categorised suggestions',
+      'C60: Glass types as editable setting with add/rename/retire',
+      'Filter overhaul: Base Spirit, Standard Drinks, Technique, Glass with cross-dimensional dimming',
+    ]
+  },
   {
     version: '0.1',
     title: 'Initial fork — Benny\'s Cocktails',
@@ -1944,6 +1984,7 @@ let currentId = null;
 let editId = null;
 let pendingSync = [];
 let formTags = [];
+let formGarnishes = [];
 let gistId = '', ghToken = '';
 let isOnline = navigator.onLine;
 let wheelDrag = {};
@@ -2132,9 +2173,9 @@ function _serializeForm() {
     notes:    document.getElementById('f-notes')?.value   || '',
     utensils: getUtensils(),
     tags:     [...formTags],
-    glass:    document.getElementById('f-glass')?.value   || '',
+    glass:    getGlassValue(),
     frozen:   document.getElementById('frozen-toggle')?.classList.contains('on') || false,
-    garnish:  getGarnishValue(),
+    garnishes: [...formGarnishes],
     spirit:   document.getElementById('f-spirit')?.value  || '',
     technique: document.getElementById('f-technique')?.value || '',
     stdDrinks: document.getElementById('f-std-drinks')?.value || '',
@@ -2183,8 +2224,9 @@ function applyFormSnapshot(snapshot) {
   renderUtensilPills();
   formTags = [...snapshot.tags];
   renderFormTags();
-  if (document.getElementById('f-glass'))     document.getElementById('f-glass').value     = snapshot.glass || '';
-  populateGarnishSelect(snapshot.garnish || '');
+  populateGlassSelect(snapshot.glass || '');
+  formGarnishes = [...(snapshot.garnishes || [])];
+  renderFormGarnishes();
   if (document.getElementById('f-spirit'))    document.getElementById('f-spirit').value    = snapshot.spirit || '';
   if (document.getElementById('f-technique')) document.getElementById('f-technique').value = snapshot.technique || '';
   if (document.getElementById('f-std-drinks')) document.getElementById('f-std-drinks').value = snapshot.stdDrinks || '';
@@ -2717,6 +2759,8 @@ function buildSettingsObj() {
     retiredUnits: RETIRED_UNITS,
     garnishOptions: GARNISH_OPTIONS,
     retiredGarnishes: RETIRED_GARNISHES,
+    glassOptions: GLASS_OPTIONS,
+    retiredGlasses: RETIRED_GLASSES,
     customUnitGroups: (() => {
       const custom = {};
       for (const [grp, units] of Object.entries(UNIT_GROUPS)) {
@@ -2753,6 +2797,8 @@ function applySettingsObj(s) {
   if (s.retiredUnits) RETIRED_UNITS = s.retiredUnits;
   if (s.garnishOptions) GARNISH_OPTIONS = s.garnishOptions;
   if (s.retiredGarnishes) RETIRED_GARNISHES = s.retiredGarnishes;
+  if (s.glassOptions) GLASS_OPTIONS = s.glassOptions;
+  if (s.retiredGlasses) RETIRED_GLASSES = s.retiredGlasses;
 }
 
 function loadSettings() {
@@ -2779,6 +2825,7 @@ function openSettings() {
   renderStgTags();
   renderStgUnits();
   renderStgGarnishes();
+  renderStgGlasses();
   document.getElementById('settings-modal').classList.add('open');
 }
 function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
@@ -3308,6 +3355,117 @@ function confirmRenameGarnish(oldG) {
   saveSettings();
   syncToGist();
   renderStgGarnishes();
+  toast(`"${oldG}" renamed to "${newG}"`);
+}
+
+// ── SETTINGS: GLASSES ────────────────────────────────────────────────────
+function renderStgGlasses() {
+  const pane = document.getElementById('stg-pane-glasses');
+  if (!pane) return;
+
+  const rows = GLASS_OPTIONS.map(g => {
+    const retired = RETIRED_GLASSES.includes(g);
+    const safeG = esc(g).replace(/'/g, "\\'");
+    const safeId = esc(g).replace(/\s+/g, '_');
+    return `<div class="stg-unit-row${retired?' retired':''}">
+      <span class="unit-name${retired?' retired-lbl':''}" id="glass-label-${safeId}">${esc(g)}</span>
+      <div class="stg-unit-btns">
+        ${!retired ? `<button class="rename-btn" onclick="startRenameGlass('${safeG}')" title="Rename">✎</button>` : ''}
+        ${retired
+          ? `<button class="restore-btn" onclick="restoreGlass('${safeG}')">Restore</button>`
+          : `<button class="retire-btn" onclick="retireGlass('${safeG}')">Retire</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+
+  pane.innerHTML = `
+    <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6">
+      Manage glass types for the edit form dropdown. Retiring hides from new entries but keeps in existing recipes. Use ✎ to rename.
+    </div>
+    <div class="stg-unit-group">
+      <div class="stg-unit-list">${rows || '<div style="font-size:0.8rem;color:var(--ink-faint);padding:4px 0">No glass types yet.</div>'}</div>
+      <div class="stg-add-row" style="margin-top:0.4rem">
+        <input type="text" placeholder="Add glass type…" id="new-glass-input"
+          onkeydown="if(event.key==='Enter'){addGlass();event.preventDefault()}">
+        <button onclick="addGlass()">Add</button>
+      </div>
+    </div>`;
+}
+
+function addGlass() {
+  const input = document.getElementById('new-glass-input');
+  const g = toTitleCase(input.value.trim());
+  if (!g) return;
+  if (GLASS_OPTIONS.map(x=>x.toLowerCase()).includes(g.toLowerCase())) {
+    toast(`"${g}" already exists`); return;
+  }
+  GLASS_OPTIONS.push(g);
+  RETIRED_GLASSES = RETIRED_GLASSES.filter(x => x.toLowerCase() !== g.toLowerCase());
+  saveSettings();
+  renderStgGlasses();
+  input.value = '';
+  toast(`"${g}" added`);
+}
+
+function retireGlass(g) {
+  if (!RETIRED_GLASSES.includes(g)) RETIRED_GLASSES.push(g);
+  saveSettings();
+  renderStgGlasses();
+  toast(`"${g}" retired`);
+}
+
+function restoreGlass(g) {
+  RETIRED_GLASSES = RETIRED_GLASSES.filter(x => x !== g);
+  saveSettings();
+  renderStgGlasses();
+  toast(`"${g}" restored`);
+}
+
+function startRenameGlass(g) {
+  const safeId = esc(g).replace(/\s+/g, '_');
+  const label = document.getElementById('glass-label-' + safeId);
+  if (!label) return;
+  const editWrap = document.createElement('span');
+  editWrap.className = 'stg-tag-edit-wrap';
+  const safeG = g.replace(/'/g, "\\'");
+  editWrap.innerHTML = `
+    <input type="text" value="${esc(g)}" id="rename-glass-input"
+      onkeydown="if(event.key==='Enter')confirmRenameGlass('${safeG}')">
+    <button onclick="confirmRenameGlass('${safeG}')">✓</button>
+    <button onclick="renderStgGlasses()">✕</button>`;
+  label.replaceWith(editWrap);
+  editWrap.querySelector('input').focus();
+  editWrap.querySelector('input').select();
+}
+
+function confirmRenameGlass(oldG) {
+  const input = document.getElementById('rename-glass-input');
+  if (!input) return;
+  const newG = toTitleCase(input.value.trim());
+  if (!newG || newG === oldG) { renderStgGlasses(); return; }
+  if (GLASS_OPTIONS.map(x=>x.toLowerCase()).includes(newG.toLowerCase()) && newG.toLowerCase() !== oldG.toLowerCase()) {
+    toast(`"${newG}" already exists`); return;
+  }
+  const count = recipes.filter(r => r.glass === oldG).length;
+  if (count > 0) {
+    showConfirm(
+      'Rename glass across all recipes?',
+      `"${oldG}" is used in ${count} recipe${count!==1?'s':''}. Renaming will update all of them. Consider retiring "${oldG}" and creating "${newG}" instead if you only want the new name for future recipes.`,
+      [{ label: `Rename to "${newG}"`, danger: false, fn: () => executeRenameGlass(oldG, newG) }]
+    );
+  } else {
+    executeRenameGlass(oldG, newG);
+  }
+}
+
+function executeRenameGlass(oldG, newG) {
+  GLASS_OPTIONS = GLASS_OPTIONS.map(x => x === oldG ? newG : x);
+  RETIRED_GLASSES = RETIRED_GLASSES.map(x => x === oldG ? newG : x);
+  recipes.forEach(r => { if (r.glass === oldG) r.glass = newG; });
+  saveSettings();
+  syncToGist();
+  renderStgGlasses();
   toast(`"${oldG}" renamed to "${newG}"`);
 }
 
@@ -3933,49 +4091,161 @@ function updateSearchClear() {
   if (btnM) btnM.classList.toggle('show', !!val);
 }
 
-// ── GARNISH SELECT ───────────────────────────────────────────────────────
-function handleGarnishSelect(sel) {
-  const manual = document.getElementById('f-garnish-manual');
+// ── GLASS SELECT ─────────────────────────────────────────────────────────
+function populateGlassSelect(currentValue) {
+  const sel = document.getElementById('f-glass');
+  const manual = document.getElementById('f-glass-manual');
+  const activeGlasses = GLASS_OPTIONS.filter(g => !RETIRED_GLASSES.includes(g));
+  const isInList = activeGlasses.some(g => g === currentValue);
+  const isRetired = RETIRED_GLASSES.includes(currentValue);
+
+  sel.innerHTML = '<option value="">— select —</option>' +
+    activeGlasses.map(g => `<option value="${esc(g)}"${currentValue === g ? ' selected' : ''}>${esc(g)}</option>`).join('') +
+    (currentValue && !isInList && !isRetired ? `<option value="${esc(currentValue)}" selected>${esc(currentValue)}</option>` : '') +
+    (isRetired ? `<option value="${esc(currentValue)}" selected>${esc(currentValue)} (retired)</option>` : '') +
+    '<option value="__manual__">Type manually…</option>';
+
+  if (manual) { manual.style.display = 'none'; manual.value = ''; }
+  if (sel.value === '__manual__' || (!currentValue && !isInList)) {
+    // nothing
+  }
+}
+
+function handleGlassSelect(sel) {
+  const manual = document.getElementById('f-glass-manual');
   if (sel.value === '__manual__') {
+    sel.style.display = 'none';
     manual.style.display = '';
     manual.focus();
   } else {
     manual.style.display = 'none';
     manual.value = '';
-    captureFormSnapshot('Change garnish');
+    sel.style.display = '';
+    captureFormSnapshot('Change glass');
   }
 }
 
-function getGarnishValue() {
-  const sel = document.getElementById('f-garnish');
-  if (sel.value === '__manual__') {
-    return document.getElementById('f-garnish-manual')?.value.trim() || '';
+function getGlassValue() {
+  const sel = document.getElementById('f-glass');
+  if (sel.value === '__manual__' || sel.style.display === 'none') {
+    return document.getElementById('f-glass-manual')?.value.trim() || '';
   }
   return sel.value || '';
 }
 
-function populateGarnishSelect(currentValue) {
-  const sel = document.getElementById('f-garnish');
-  const manual = document.getElementById('f-garnish-manual');
-  const activeGarnishes = GARNISH_OPTIONS.filter(g => !RETIRED_GARNISHES.includes(g));
-  // If current value is not in the list (manual entry or retired), include it
-  const isInList = activeGarnishes.some(g => g === currentValue);
-  const isRetired = RETIRED_GARNISHES.includes(currentValue);
+// ── GARNISH PILLS (multi-select) ─────────────────────────────────────────
 
-  sel.innerHTML = '<option value="">— none —</option>' +
-    activeGarnishes.map(g => `<option value="${esc(g)}"${currentValue === g ? ' selected' : ''}>${esc(g)}</option>`).join('') +
-    (currentValue && !isInList && !isRetired ? `<option value="${esc(currentValue)}" selected>${esc(currentValue)}</option>` : '') +
-    (isRetired ? `<option value="${esc(currentValue)}" selected>${esc(currentValue)} (retired)</option>` : '') +
-    '<option value="__manual__">Type manually…</option>';
+const DEFAULT_GARNISH_GROUPS = {
+  'Citrus':      ['Lemon Peel','Lemon Twist','Lemon Wedge','Lemon Wheel','Lime Peel','Lime Twist','Lime Wedge','Lime Wheel','Orange Peel','Orange Twist','Orange Wedge','Orange Wheel','Grapefruit Peel','Grapefruit Wedge'],
+  'Fruit':       ['Cherry','Luxardo Cherry','Pineapple Wedge','Strawberry','Apple Slice','Banana'],
+  'Herbs':       ['Mint Sprig','Rosemary Sprig','Basil Leaf','Thyme Sprig'],
+  'Rims':        ['Salt Rim','Sugar Rim','Tajin Rim','Cocoa Rim'],
+  'Dehydrates':  ['Dehydrated Lime','Dehydrated Orange','Dehydrated Lemon','Dehydrated Pineapple'],
+  'Other':       ['Olive','Cocktail Onion','Cinnamon Stick','Nutmeg','Star Anise','Edible Flower','Cucumber Ribbon','Celery Stalk']
+};
 
-  if (currentValue && !isInList && !isRetired) {
-    // Value was manually typed previously — keep it selected
-  }
-  if (manual) {
-    manual.style.display = 'none';
-    manual.value = '';
+function renderFormGarnishes() {
+  const box = document.getElementById('garnish-box');
+  const input = document.getElementById('garnish-input');
+  box.querySelectorAll('.tpill').forEach(p => p.remove());
+  formGarnishes.forEach(g => {
+    const pill = document.createElement('span');
+    pill.className = 'tpill';
+    pill.innerHTML = `${esc(g)}<button onclick="removeFormGarnish('${g.replace(/'/g,"\\'")}')" type="button">×</button>`;
+    box.insertBefore(pill, input);
+  });
+}
+
+function addFormGarnish(raw) {
+  const g = toTitleCase(raw.replace(/,/g,'').trim());
+  if (!g || formGarnishes.map(x=>x.toLowerCase()).includes(g.toLowerCase())) return;
+  captureFormSnapshot(`Add garnish "${g}"`);
+  formGarnishes.push(g);
+  renderFormGarnishes();
+  document.getElementById('garnish-input').value = '';
+  hideGarnishSugs();
+  // If garnish isn't in GARNISH_OPTIONS, add it
+  if (!GARNISH_OPTIONS.map(x=>x.toLowerCase()).includes(g.toLowerCase())) {
+    GARNISH_OPTIONS.push(g);
+    GARNISH_OPTIONS.sort((a,b) => a.localeCompare(b));
+    saveSettings();
   }
 }
+
+function removeFormGarnish(g) {
+  captureFormSnapshot(`Remove garnish "${g}"`);
+  formGarnishes = formGarnishes.filter(x => x !== g);
+  renderFormGarnishes();
+}
+
+function garnishKeydown(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const val = e.target.value.trim();
+    if (val) addFormGarnish(val);
+  } else if (e.key === 'Backspace' && !e.target.value && formGarnishes.length) {
+    formGarnishes.pop();
+    renderFormGarnishes();
+  }
+}
+
+function garnishFocus() { showGarnishSugs(document.getElementById('garnish-input').value); }
+function garnishInputFn(e) { showGarnishSugs(e.target.value); }
+
+function showGarnishSugs(rawVal) {
+  const val = rawVal.toLowerCase().trim();
+  const el = document.getElementById('garnish-sugs');
+  const activeGarnishes = GARNISH_OPTIONS.filter(g => !RETIRED_GARNISHES.includes(g));
+
+  if (!val) {
+    // Show grouped suggestions
+    let html = '';
+    for (const [group, garnishes] of Object.entries(DEFAULT_GARNISH_GROUPS)) {
+      // Show garnishes that exist in GARNISH_OPTIONS (active)
+      const groupItems = garnishes.filter(g => activeGarnishes.map(x=>x.toLowerCase()).includes(g.toLowerCase()));
+      if (!groupItems.length) continue;
+      const pills = groupItems.map(g => {
+        const already = formGarnishes.map(f=>f.toLowerCase()).includes(g.toLowerCase());
+        return `<span class="tsug${already?' already':''}" onclick="addFormGarnish('${g}')">${g}</span>`;
+      }).join('');
+      html += `<div class="tsug-group-lbl">${group}</div><div class="tsug-row">${pills}</div>`;
+    }
+    // Show any custom garnishes not in default groups
+    const allDefaultGarnishes = Object.values(DEFAULT_GARNISH_GROUPS).flat().map(g=>g.toLowerCase());
+    const customGarnishes = activeGarnishes.filter(g => !allDefaultGarnishes.includes(g.toLowerCase()));
+    if (customGarnishes.length) {
+      const pills = customGarnishes.map(g => {
+        const already = formGarnishes.map(f=>f.toLowerCase()).includes(g.toLowerCase());
+        return `<span class="tsug${already?' already':''}" onclick="addFormGarnish('${g}')">${g}</span>`;
+      }).join('');
+      html += `<div class="tsug-group-lbl">Custom</div><div class="tsug-row">${pills}</div>`;
+    }
+    el.innerHTML = html;
+    el.classList.add('show');
+  } else {
+    // Narrowed search
+    const matches = activeGarnishes.filter(g =>
+      g.toLowerCase().includes(val) && !formGarnishes.map(f=>f.toLowerCase()).includes(g.toLowerCase())
+    );
+    const titled = toTitleCase(rawVal.trim());
+    const showCustom = titled && !activeGarnishes.map(g=>g.toLowerCase()).includes(titled.toLowerCase())
+                               && !formGarnishes.map(f=>f.toLowerCase()).includes(titled.toLowerCase());
+    if (!matches.length && !showCustom) { hideGarnishSugs(); return; }
+    let html = '';
+    if (matches.length) {
+      html += `<div class="tsug-row" style="padding-top:6px">` +
+        matches.map(g => `<span class="tsug" onclick="addFormGarnish('${g}')">${g}</span>`).join('') + `</div>`;
+    }
+    if (showCustom) {
+      html += `<div class="tsug-group-lbl" style="${matches.length?'':'padding-top:6px'}">Add custom</div>
+               <div class="tsug-row"><span class="tsug" onclick="addFormGarnish('${titled}')" style="border-style:dashed">${titled}</span></div>`;
+    }
+    el.innerHTML = html;
+    el.classList.add('show');
+  }
+}
+
+function hideGarnishSugs() { document.getElementById('garnish-sugs')?.classList.remove('show'); }
 
 // ── FROZEN GLASS TOGGLE ──────────────────────────────────────────────────
 function toggleFrozen() {
@@ -4845,19 +5115,16 @@ function openEdit(r) {
   formTags = [...(r?.tags||[])];
   renderFormTags();
 
-  // Glass dropdown — populate options
-  const glassSel = document.getElementById('f-glass');
-  glassSel.innerHTML = '<option value="">— select —</option>' + GLASS_OPTIONS.map(g =>
-    `<option value="${esc(g)}"${r?.glass === g ? ' selected' : ''}>${esc(g)}</option>`
-  ).join('');
-  if (r?.glass) glassSel.value = r.glass;
+  // Glass dropdown — populate from managed list
+  populateGlassSelect(r?.glass || '');
 
   // Frozen glass toggle
   const frozenBtn = document.getElementById('frozen-toggle');
   if (frozenBtn) frozenBtn.classList.toggle('on', !!r?.glassFrozen);
 
-  // Garnish dropdown, standard drinks
-  populateGarnishSelect(r?.garnish || '');
+  // Garnish pills
+  formGarnishes = r?.garnish ? r.garnish.split(',').map(g => g.trim()).filter(Boolean) : [];
+  renderFormGarnishes();
   document.getElementById('f-std-drinks').value = r?.standardDrinks ?? '';
 
   // Spirit dropdown — populate from Spirit tag group
@@ -5240,9 +5507,9 @@ async function saveRecipe() {
     name, tags: formTags.map(toTitleCase),
     spirit: document.getElementById('f-spirit')?.value || null,
     technique: document.getElementById('f-technique')?.value || null,
-    glass: document.getElementById('f-glass').value || null,
+    glass: getGlassValue() || null,
     glassFrozen: document.getElementById('frozen-toggle')?.classList.contains('on') || false,
-    garnish: getGarnishValue() || null,
+    garnish: formGarnishes.length ? formGarnishes.join(', ') : null,
     standardDrinks: parseFloat(document.getElementById('f-std-drinks').value) || null,
     scalable,
     allowedScales: scalable ? {
@@ -5434,7 +5701,10 @@ function showTagSugs(rawVal) {
 }
 
 function hideSugs() { document.getElementById('tag-sugs').classList.remove('show'); }
-document.addEventListener('click', e => { if (!e.target.closest('.tags-wrap')) hideSugs(); });
+document.addEventListener('click', e => {
+  if (!e.target.closest('.tags-wrap') && !e.target.closest('#garnish-box')) hideSugs();
+  if (!e.target.closest('#garnish-box') && !e.target.closest('#garnish-sugs')) hideGarnishSugs();
+});
 
 // ── INGREDIENT SECTION BUILDER ────────────────────────────────────────────
 function addIngUnsectioned(data) {
