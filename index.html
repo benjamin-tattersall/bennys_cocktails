@@ -1340,6 +1340,9 @@ header{
               <option value="">— select —</option>
             </select>
             <input type="text" id="f-glass-manual" placeholder="Type glass…" style="display:none;flex:1" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit glass')">
+            <button type="button" class="frozen-toggle" id="glass-back-btn" onclick="switchGlassToDropdown()" title="Back to list" style="display:none">
+              <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="4,2 9,6 4,10"/></svg>
+            </button>
             <button type="button" class="frozen-toggle" id="frozen-toggle" onclick="toggleFrozen()" title="Frozen glass">
               <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/><line x1="2.5" y1="2.5" x2="9.5" y2="9.5"/><line x1="9.5" y1="2.5" x2="2.5" y2="9.5"/></svg>
             </button>
@@ -2759,6 +2762,7 @@ function buildSettingsObj() {
     retiredUnits: RETIRED_UNITS,
     garnishOptions: GARNISH_OPTIONS,
     retiredGarnishes: RETIRED_GARNISHES,
+    garnishGroups: GARNISH_GROUPS,
     glassOptions: GLASS_OPTIONS,
     retiredGlasses: RETIRED_GLASSES,
     customUnitGroups: (() => {
@@ -2797,6 +2801,7 @@ function applySettingsObj(s) {
   if (s.retiredUnits) RETIRED_UNITS = s.retiredUnits;
   if (s.garnishOptions) GARNISH_OPTIONS = s.garnishOptions;
   if (s.retiredGarnishes) RETIRED_GARNISHES = s.retiredGarnishes;
+  if (s.garnishGroups) GARNISH_GROUPS = s.garnishGroups;
   if (s.glassOptions) GLASS_OPTIONS = s.glassOptions;
   if (s.retiredGlasses) RETIRED_GLASSES = s.retiredGlasses;
 }
@@ -3173,6 +3178,33 @@ function addUnitToGroup(group) {
 }
 
 function retireUnit(unit) {
+  const affected = recipes.filter(r =>
+    r.ingredients?.some(sec => sec.items?.some(item =>
+      item.unit === unit || item.substitutes?.some(s => s.unit === unit)
+    ))
+  ).length;
+  if (affected > 0) {
+    showConfirm(
+      `Remove "${unit}"?`,
+      `Used in ${affected} recipe${affected!==1?'s':''}. Choose what to do:`,
+      [
+        { label: 'Remove from list only', danger: false, fn: () => doRetireUnit(unit) },
+        { label: 'Remove from all recipes', danger: true, fn: () => {
+          recipes.forEach(r => r.ingredients?.forEach(sec => sec.items?.forEach(item => {
+            if (item.unit === unit) item.unit = '';
+            item.substitutes?.forEach(s => { if (s.unit === unit) s.unit = ''; });
+          })));
+          doRetireUnit(unit);
+          syncToGist();
+        }}
+      ]
+    );
+  } else {
+    doRetireUnit(unit);
+  }
+}
+
+function doRetireUnit(unit) {
   if (!RETIRED_UNITS.includes(unit)) RETIRED_UNITS.push(unit);
   saveSettings();
   renderStgUnits();
@@ -3252,101 +3284,186 @@ function executeRenameUnit(oldUnit, newUnit) {
 }
 
 // ── SETTINGS: GARNISHES ──────────────────────────────────────────────────
-let GARNISH_OPTIONS = ['Cherry','Lemon Peel','Lemon Twist','Lemon Wedge','Lemon Wheel','Lime Peel','Lime Twist','Lime Wedge','Lime Wheel','Luxardo Cherry','Mint Sprig','Olive','Orange Peel','Orange Twist','Orange Wedge','Orange Wheel','Pineapple Wedge','Rosemary Sprig','Salt Rim','Sugar Rim'];
+let GARNISH_OPTIONS = ['Cherry','Grapefruit Peel','Grapefruit Wedge','Lemon Peel','Lemon Twist','Lemon Wedge','Lemon Wheel','Lime Peel','Lime Twist','Lime Wedge','Lime Wheel','Luxardo Cherry','Mint Sprig','Olive','Orange Peel','Orange Twist','Orange Wedge','Orange Wheel','Pineapple Wedge','Rosemary Sprig','Salt Rim','Sugar Rim','Basil Leaf','Thyme Sprig','Cocktail Onion','Cinnamon Stick','Nutmeg','Star Anise','Edible Flower','Cucumber Ribbon','Celery Stalk','Strawberry','Apple Slice','Dehydrated Lime','Dehydrated Orange','Dehydrated Lemon','Dehydrated Pineapple','Tajin Rim','Cocoa Rim'];
 let RETIRED_GARNISHES = [];
+let GARNISH_GROUPS = {}; // populated after DEFAULT_GARNISH_GROUPS is defined
 
 function renderStgGarnishes() {
   const pane = document.getElementById('stg-pane-garnishes');
   if (!pane) return;
 
-  const rows = GARNISH_OPTIONS.map(g => {
-    const retired = RETIRED_GARNISHES.includes(g);
-    const safeG = esc(g).replace(/'/g, "\\'");
-    const safeId = esc(g).replace(/\s+/g, '_');
-    return `<div class="stg-unit-row${retired?' retired':''}">
-      <span class="unit-name${retired?' retired-lbl':''}" id="garnish-label-${safeId}">${esc(g)}</span>
-      <div class="stg-unit-btns">
-        ${!retired ? `<button class="rename-btn" onclick="startRenameGarnish('${safeG}')" title="Rename">\u270e</button>` : ''}
-        ${retired
-          ? `<button class="restore-btn" onclick="restoreGarnish('${safeG}')">Restore</button>`
-          : `<button class="retire-btn" onclick="retireGarnish('${safeG}')">Retire</button>`
-        }
-      </div>
-    </div>`;
-  }).join('');
+  let html = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">
+    Manage garnish options. Custom additions appear highlighted. Use \u270e to rename.
+  </div>`;
 
-  pane.innerHTML = `
-    <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6">
-      Manage garnish options for the edit form dropdown. Retiring hides from new entries but keeps in existing recipes. Use \u270e to rename.
-    </div>
-    <div class="stg-unit-group">
-      <div class="stg-unit-list">${rows || '<div style="font-size:0.8rem;color:var(--ink-faint);padding:4px 0">No garnishes yet.</div>'}</div>
-      <div class="stg-add-row" style="margin-top:0.4rem">
-        <input type="text" placeholder="Add garnish\u2026" id="new-garnish-input"
-          onkeydown="if(event.key==='Enter'){addGarnish();event.preventDefault()}">
-        <button onclick="addGarnish()">Add</button>
+  for (const [group, garnishes] of Object.entries(GARNISH_GROUPS)) {
+    const isCustomGroup = !DEFAULT_GARNISH_GROUPS[group];
+    const defaultItems = DEFAULT_GARNISH_GROUPS[group] || [];
+    const pills = garnishes.map(g => {
+      const isCustom = !defaultItems.map(d=>d.toLowerCase()).includes(g.toLowerCase());
+      const safeG = g.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const safeGrp = group.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return `<span class="stg-tag${isCustom?' custom':''}">
+        ${esc(g)}
+        <button onclick="startRenameGarnishItem('${safeGrp}','${safeG}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">\u270e</button>
+        <button onclick="removeGarnishFromGroup('${safeGrp}','${safeG}')" title="Remove">\u00d7</button>
+      </span>`;
+    }).join('');
+    const safeGroup = group.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    html += `<div class="stg-group">
+      <div class="stg-group-head">
+        <span class="stg-group-name">${esc(group)}</span>
+        ${isCustomGroup ? `<button onclick="removeGarnishCategory('${safeGroup}')" style="background:none;border:none;cursor:pointer;font-size:0.75rem;color:var(--ink-faint);padding:0" title="Remove category">Remove category</button>` : ''}
+      </div>
+      <div class="stg-group-body" id="stg-garnish-body-${esc(group)}">${pills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No garnishes yet \u2014 add one below.</span>'}</div>
+      <div style="padding:0 0.9rem 0.7rem">
+        <div class="stg-add-row">
+          <input type="text" placeholder="Add garnish to ${esc(group)}\u2026" id="new-garnish-${esc(group)}"
+            onkeydown="if(event.key==='Enter'){addGarnishToGroup('${safeGroup}');event.preventDefault()}">
+          <button onclick="addGarnishToGroup('${safeGroup}')">Add</button>
+        </div>
       </div>
     </div>`;
+  }
+  html += `<div style="border:1px dashed var(--border-mid);border-radius:var(--radius-lg);padding:0.7rem 0.9rem">
+    <div class="stg-section-lbl" style="margin-bottom:0.5rem">Add new category</div>
+    <div class="stg-add-row">
+      <input type="text" placeholder="Category name\u2026" id="new-garnish-category"
+        onkeydown="if(event.key==='Enter'){addGarnishCategory();event.preventDefault()}">
+      <button onclick="addGarnishCategory()">Create</button>
+    </div>
+  </div>`;
+  pane.innerHTML = html;
 }
 
-function addGarnish() {
-  const input = document.getElementById('new-garnish-input');
-  const g = toTitleCase(input.value.trim());
-  if (!g) return;
-  if (GARNISH_OPTIONS.map(x=>x.toLowerCase()).includes(g.toLowerCase())) {
-    toast(`"${g}" already exists`); return;
-  }
-  GARNISH_OPTIONS.push(g);
-  GARNISH_OPTIONS.sort((a,b) => a.localeCompare(b));
-  RETIRED_GARNISHES = RETIRED_GARNISHES.filter(x => x.toLowerCase() !== g.toLowerCase());
+function addGarnishCategory() {
+  const input = document.getElementById('new-garnish-category');
+  const name = toTitleCase(input.value.trim());
+  if (!name) return;
+  if (GARNISH_GROUPS[name]) { toast(`"${name}" already exists`); return; }
+  GARNISH_GROUPS[name] = [];
   saveSettings();
   renderStgGarnishes();
   input.value = '';
-  toast(`"${g}" added`);
+  toast(`"${name}" category created`);
 }
 
-function retireGarnish(g) {
-  if (!RETIRED_GARNISHES.includes(g)) RETIRED_GARNISHES.push(g);
+function removeGarnishCategory(group) {
+  const items = GARNISH_GROUPS[group] || [];
+  const msg = items.length
+    ? `"${group}" contains ${items.length} garnish${items.length>1?'es':''}. They will be removed from the list.`
+    : `Remove the "${group}" category?`;
+  showConfirm(`Remove "${group}"?`, msg, [
+    { label: 'Remove category', danger: true, fn: () => {
+      delete GARNISH_GROUPS[group];
+      // Also remove from GARNISH_OPTIONS
+      items.forEach(g => {
+        GARNISH_OPTIONS = GARNISH_OPTIONS.filter(x => x !== g);
+      });
+      saveSettings();
+      renderStgGarnishes();
+      toast(`"${group}" removed`);
+    }}
+  ]);
+}
+
+function addGarnishToGroup(group) {
+  const input = document.getElementById(`new-garnish-${group}`);
+  const g = toTitleCase(input.value.trim());
+  if (!g) return;
+  if (GARNISH_GROUPS[group]?.map(x=>x.toLowerCase()).includes(g.toLowerCase())) {
+    toast(`"${g}" already exists in ${group}`); return;
+  }
+  if (!GARNISH_GROUPS[group]) GARNISH_GROUPS[group] = [];
+  GARNISH_GROUPS[group].push(g);
+  if (!GARNISH_OPTIONS.map(x=>x.toLowerCase()).includes(g.toLowerCase())) {
+    GARNISH_OPTIONS.push(g);
+    GARNISH_OPTIONS.sort((a,b) => a.localeCompare(b));
+  }
   saveSettings();
   renderStgGarnishes();
-  toast(`"${g}" retired`);
+  input.value = '';
+  toast(`"${g}" added to ${group}`);
 }
 
-function restoreGarnish(g) {
-  RETIRED_GARNISHES = RETIRED_GARNISHES.filter(x => x !== g);
+function removeGarnishFromGroup(group, g) {
+  // Count recipes using this garnish
+  const affected = recipes.filter(r => r.garnish && r.garnish.toLowerCase().includes(g.toLowerCase()));
+  if (affected.length > 0) {
+    showConfirm(
+      `Remove "${g}"?`,
+      `Used in ${affected.length} recipe${affected.length>1?'s':''}. Choose what to do:`,
+      [
+        { label: 'Remove from list only', danger: false, fn: () => doRemoveGarnish(group, g, false) },
+        { label: 'Remove from all recipes', danger: true, fn: () => doRemoveGarnish(group, g, true) }
+      ]
+    );
+  } else {
+    doRemoveGarnish(group, g, false);
+  }
+}
+
+function doRemoveGarnish(group, g, removeFromRecipes) {
+  if (GARNISH_GROUPS[group]) {
+    GARNISH_GROUPS[group] = GARNISH_GROUPS[group].filter(x => x !== g);
+    if (GARNISH_GROUPS[group].length === 0 && !DEFAULT_GARNISH_GROUPS[group]) {
+      delete GARNISH_GROUPS[group];
+    }
+  }
+  GARNISH_OPTIONS = GARNISH_OPTIONS.filter(x => x !== g);
+  if (removeFromRecipes) {
+    recipes.forEach(r => {
+      if (r.garnish) {
+        const parts = r.garnish.split(',').map(x => x.trim()).filter(x => x.toLowerCase() !== g.toLowerCase());
+        r.garnish = parts.join(', ') || null;
+      }
+    });
+    syncToGist();
+  }
   saveSettings();
   renderStgGarnishes();
-  toast(`"${g}" restored`);
+  toast(`"${g}" removed`);
 }
 
-function startRenameGarnish(g) {
-  const safeId = esc(g).replace(/\s+/g, '_');
-  const label = document.getElementById('garnish-label-' + safeId);
-  if (!label) return;
-  const editWrap = document.createElement('span');
-  editWrap.className = 'stg-tag-edit-wrap';
-  const safeG = g.replace(/'/g, "\\'");
-  editWrap.innerHTML = `
-    <input type="text" value="${esc(g)}" id="rename-garnish-input"
-      onkeydown="if(event.key==='Enter')confirmRenameGarnish('${safeG}')">
-    <button onclick="confirmRenameGarnish('${safeG}')">\u2713</button>
-    <button onclick="renderStgGarnishes()">\u2715</button>`;
-  label.replaceWith(editWrap);
-  editWrap.querySelector('input').focus();
-  editWrap.querySelector('input').select();
+function startRenameGarnishItem(group, g) {
+  const body = document.getElementById(`stg-garnish-body-${group}`);
+  if (!body) return;
+  const pills = body.querySelectorAll('.stg-tag');
+  for (const pill of pills) {
+    if (pill.textContent.trim().startsWith(g)) {
+      const editWrap = document.createElement('span');
+      editWrap.className = 'stg-tag-edit-wrap';
+      const safeGrp = group.replace(/'/g, "\\'");
+      const safeG = g.replace(/'/g, "\\'");
+      editWrap.innerHTML = `
+        <input type="text" value="${esc(g)}" id="rename-garnish-input"
+          onkeydown="if(event.key==='Enter')confirmRenameGarnishItem('${safeGrp}','${safeG}')">
+        <button onclick="confirmRenameGarnishItem('${safeGrp}','${safeG}')">\u2713</button>
+        <button onclick="renderStgGarnishes()">\u2715</button>`;
+      pill.replaceWith(editWrap);
+      editWrap.querySelector('input').focus();
+      editWrap.querySelector('input').select();
+      break;
+    }
+  }
 }
 
-function confirmRenameGarnish(oldG) {
+function confirmRenameGarnishItem(group, oldG) {
   const input = document.getElementById('rename-garnish-input');
   if (!input) return;
   const newG = toTitleCase(input.value.trim());
   if (!newG || newG === oldG) { renderStgGarnishes(); return; }
-  if (GARNISH_OPTIONS.map(x=>x.toLowerCase()).includes(newG.toLowerCase()) && newG.toLowerCase() !== oldG.toLowerCase()) {
+  // Check all groups for duplicate
+  const allGarnishes = Object.values(GARNISH_GROUPS).flat();
+  if (allGarnishes.map(x=>x.toLowerCase()).includes(newG.toLowerCase()) && newG.toLowerCase() !== oldG.toLowerCase()) {
     toast(`"${newG}" already exists`); return;
+  }
+  if (GARNISH_GROUPS[group]) {
+    GARNISH_GROUPS[group] = GARNISH_GROUPS[group].map(x => x === oldG ? newG : x);
   }
   GARNISH_OPTIONS = GARNISH_OPTIONS.map(x => x === oldG ? newG : x);
   GARNISH_OPTIONS.sort((a,b) => a.localeCompare(b));
-  RETIRED_GARNISHES = RETIRED_GARNISHES.map(x => x === oldG ? newG : x);
+  // Update recipes
   recipes.forEach(r => {
     if (r.garnish && r.garnish.includes(oldG)) {
       r.garnish = r.garnish.replace(new RegExp(oldG.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newG);
@@ -3409,6 +3526,26 @@ function addGlass() {
 }
 
 function retireGlass(g) {
+  const affected = recipes.filter(r => r.glass === g).length;
+  if (affected > 0) {
+    showConfirm(
+      `Remove "${g}"?`,
+      `Used in ${affected} recipe${affected!==1?'s':''}. Choose what to do:`,
+      [
+        { label: 'Remove from list only', danger: false, fn: () => doRetireGlass(g) },
+        { label: 'Remove from all recipes', danger: true, fn: () => {
+          recipes.forEach(r => { if (r.glass === g) r.glass = null; });
+          doRetireGlass(g);
+          syncToGist();
+        }}
+      ]
+    );
+  } else {
+    doRetireGlass(g);
+  }
+}
+
+function doRetireGlass(g) {
   if (!RETIRED_GLASSES.includes(g)) RETIRED_GLASSES.push(g);
   saveSettings();
   renderStgGlasses();
@@ -4095,6 +4232,7 @@ function updateSearchClear() {
 function populateGlassSelect(currentValue) {
   const sel = document.getElementById('f-glass');
   const manual = document.getElementById('f-glass-manual');
+  const backBtn = document.getElementById('glass-back-btn');
   const activeGlasses = GLASS_OPTIONS.filter(g => !RETIRED_GLASSES.includes(g));
   const isInList = activeGlasses.some(g => g === currentValue);
   const isRetired = RETIRED_GLASSES.includes(currentValue);
@@ -4105,24 +4243,39 @@ function populateGlassSelect(currentValue) {
     (isRetired ? `<option value="${esc(currentValue)}" selected>${esc(currentValue)} (retired)</option>` : '') +
     '<option value="__manual__">Type manually…</option>';
 
+  sel.style.display = '';
   if (manual) { manual.style.display = 'none'; manual.value = ''; }
-  if (sel.value === '__manual__' || (!currentValue && !isInList)) {
-    // nothing
-  }
+  if (backBtn) backBtn.style.display = 'none';
 }
 
 function handleGlassSelect(sel) {
   const manual = document.getElementById('f-glass-manual');
+  const backBtn = document.getElementById('glass-back-btn');
   if (sel.value === '__manual__') {
     sel.style.display = 'none';
     manual.style.display = '';
+    if (backBtn) backBtn.style.display = '';
     manual.focus();
   } else {
     manual.style.display = 'none';
     manual.value = '';
     sel.style.display = '';
+    if (backBtn) backBtn.style.display = 'none';
     captureFormSnapshot('Change glass');
   }
+}
+
+function switchGlassToDropdown() {
+  const sel = document.getElementById('f-glass');
+  const manual = document.getElementById('f-glass-manual');
+  const backBtn = document.getElementById('glass-back-btn');
+  preCaptureSnapshot();
+  sel.style.display = '';
+  sel.value = '';
+  manual.style.display = 'none';
+  manual.value = '';
+  if (backBtn) backBtn.style.display = 'none';
+  captureFormSnapshot('Change glass');
 }
 
 function getGlassValue() {
@@ -4143,6 +4296,7 @@ const DEFAULT_GARNISH_GROUPS = {
   'Dehydrates':  ['Dehydrated Lime','Dehydrated Orange','Dehydrated Lemon','Dehydrated Pineapple'],
   'Other':       ['Olive','Cocktail Onion','Cinnamon Stick','Nutmeg','Star Anise','Edible Flower','Cucumber Ribbon','Celery Stalk']
 };
+GARNISH_GROUPS = JSON.parse(JSON.stringify(DEFAULT_GARNISH_GROUPS));
 
 function renderFormGarnishes() {
   const box = document.getElementById('garnish-box');
@@ -4200,7 +4354,7 @@ function showGarnishSugs(rawVal) {
   if (!val) {
     // Show grouped suggestions
     let html = '';
-    for (const [group, garnishes] of Object.entries(DEFAULT_GARNISH_GROUPS)) {
+    for (const [group, garnishes] of Object.entries(GARNISH_GROUPS)) {
       // Show garnishes that exist in GARNISH_OPTIONS (active)
       const groupItems = garnishes.filter(g => activeGarnishes.map(x=>x.toLowerCase()).includes(g.toLowerCase()));
       if (!groupItems.length) continue;
