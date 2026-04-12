@@ -1919,10 +1919,24 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.4';
+const APP_VERSION = '0.5';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.5',
+    title: 'Critical save fix & prep field cleanup',
+    userNotes: [
+      'Fixed: recipes can now be saved again (crash from prep field removal)',
+      'Fixed: mobile ingredient collapse buttons now work',
+      'Ingredient prep field fully removed from substitute entries and save logic',
+    ],
+    items: [
+      'Fix: removed orphaned prepEl/mobileSubPrep/desktopSubPrep references in saveRecipe that caused crash',
+      'Fix: removed prep from ingredient data push object',
+      'Fix: removed prep sync block for substitute entries',
+    ]
+  },
   {
     version: '0.4',
     title: 'Edit form cleanup & view refinements',
@@ -5791,8 +5805,6 @@ async function saveRecipe() {
           const desktopSubNote = entry.querySelector('.sub-note-inp');
           if (mobileSubNote?.value.trim() && !subDesktopVisible) desktopSubNote && (desktopSubNote.value = mobileSubNote.value.trim());
 
-          if (mobileSubPrep?.value.trim() && !subDesktopVisible) desktopSubPrep && (desktopSubPrep.value = mobileSubPrep.value.trim());
-
           const sName = desktopSubName?.value.trim() || mobileSubName?.value.trim() || '';
           if (!sName) return;
           const sAmt  = desktopSubAmt?.value.trim() || mobileSubAmt?.value.trim() || '';
@@ -5803,7 +5815,6 @@ async function saveRecipe() {
             desktopSubUnitSel.value = mobileSubUnitSel.value;
           const sUnit = (desktopSubUnitSel || mobileSubUnitSel)?.value || '';
           const sNote = desktopSubNote?.value.trim() || mobileSubNote?.value.trim() || '';
-          const sPrep = desktopSubPrep?.value.trim() || mobileSubPrep?.value.trim() || '';
           const sIngNote = entry.querySelector('.sub-ing-note-inp')?.value.trim() || '';
           // T100: read group from mobile entry on iPhone, desktop on desktop
           const desktopGroupEl = entry.querySelector('.sub-entry-head .sub-group-inp');
@@ -5823,7 +5834,6 @@ async function saveRecipe() {
             name:    toTitleCase(sName),
             amount:  sAmt ? parseFloat(sAmt) : undefined,
             unit:    sUnit || undefined,
-            prep:    sPrep || undefined,
             note:    sNote || undefined,
             ingNote: sIngNote || undefined,
             group:   sGroup   || undefined,
@@ -5840,7 +5850,6 @@ async function saveRecipe() {
           name,
           amount: rawAmt !== '' && rawAmt != null ? parseFloat(rawAmt) : null,
           unit:   rawUnit,
-          prep:   prepEl?.value.trim() || '',
           note:   ingNoteVal || undefined,
           optional: optional || undefined,
           noscale,
