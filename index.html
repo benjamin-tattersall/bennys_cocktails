@@ -622,7 +622,6 @@ header{
   /* row 3: prep full width */
   .ing-mobile-actions{display:flex;align-items:center;gap:6px}
   .ing-mobile-actions .ing-field-group{flex:1;min-width:0}
-  .ing-mobile-actions .prep-inp{width:100%}
   .ing-mobile-btn-group{display:flex;gap:6px;align-items:center;flex-shrink:0}
   .ing-mobile-btn-group button{
     height:38px;width:38px;border-radius:6px;
@@ -1188,7 +1187,6 @@ header{
 @media(max-width:500px){
   .f2{grid-template-columns:1fr}
   .ing-row{grid-template-columns:1fr 1fr auto;grid-template-rows:auto auto}
-  .ing-row .prep-inp{grid-column:1/3}
   .wheel-panel{padding-left:1.5rem;padding-right:1.5rem} /* grab-safe zone on mobile scroll */
   .wheel-row{gap:0.5rem}
 }
@@ -1921,10 +1919,24 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.3';
+const APP_VERSION = '0.4';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.4',
+    title: 'Edit form cleanup & view refinements',
+    userNotes: [
+      'Ingredient prep field completely removed from the edit form — use notes for prep instructions',
+      'Recipe view streamlined — Base Spirit removed from meta (visible in ingredients), Standard Drinks moved to the scale bar row',
+      'Non-alcoholic recipes now get their own "No Alcohol" group when grouping by Standard Drinks',
+    ],
+    items: [
+      'C92: Prep field fully removed from edit form (desktop + mobile ingredient rows, substitute entries, summary)',
+      'View meta: removed Base Spirit (implied by ingredients), moved Standard Drinks to scale bar (right-justified)',
+      'Standard Drinks group-by: added No Alcohol bucket for sd=0',
+    ]
+  },
   {
     version: '0.3',
     title: 'Phase A — Quick fixes & consistency',
@@ -4299,6 +4311,7 @@ function getRecipeGroups(r) {
   if (groupBy === 'Standard Drinks') {
     const sd = r.standardDrinks;
     if (sd == null) return ['Unspecified'];
+    if (sd === 0) return ['No Alcohol'];
     if (sd <= 1) return ['0 – 1'];
     if (sd <= 2) return ['1 – 2'];
     if (sd <= 3) return ['2 – 3'];
@@ -4975,6 +4988,12 @@ function renderViewBody(r) {
     ${showTriple ? `<button class="scale-seg${scaleFactor===3?' active':''}" data-scale="3" onclick="setScale(3)">3×</button>` : ''}
     ${showQuad   ? `<button class="scale-seg${scaleFactor===4?' active':''}" data-scale="4" onclick="setScale(4)">4×</button>` : ''}
     ${showQuint  ? `<button class="scale-seg${scaleFactor===5?' active':''}" data-scale="5" onclick="setScale(5)">5×</button>` : ''}
+    ${r.standardDrinks ? (() => {
+      const sd = r.standardDrinks;
+      if (scaleFactor === 1) return `<span style="margin-left:auto;font-size:0.75rem;color:var(--ink-muted)"><strong style="color:var(--ink)">${sd}</strong> std drinks</span>`;
+      if (scaleFactor < 1) { const s = Math.round(sd*scaleFactor*10)/10; return `<span style="margin-left:auto;font-size:0.75rem;color:var(--ink-muted)"><strong style="color:var(--ink)">${s}</strong> std drinks</span>`; }
+      const t = Math.round(sd*scaleFactor*10)/10; return `<span style="margin-left:auto;font-size:0.75rem;color:var(--ink-muted)"><strong style="color:var(--ink)">${t}</strong> <span style="font-size:0.7rem">(${scaleFactor} × ${sd})</span> std drinks</span>`;
+    })() : ''}
   </div>` : '';
 
   const metaItems = [];
@@ -4983,21 +5002,10 @@ function renderViewBody(r) {
     const snowflake = r.glassFrozen ? '<svg viewBox="0 0 10 10" width="5" height="5" fill="none" stroke="#70b8e8" stroke-width="1.5" stroke-linecap="round" style="margin-left:3px"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="5" x2="9" y2="5"/><line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/></svg>' : '';
     metaItems.push(`<span class="vmeta"><svg viewBox="0 0 14 14" style="width:12px;height:12px"><path d="M4 1h6l-1 7H5L4 1z" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="7" y1="8" x2="7" y2="12" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="1.2"/></svg><strong${frozenStyle}>${esc(r.glass)}</strong>${snowflake}</span>`);
   }
-  if (r.spirit) metaItems.push(`<span class="vmeta"><strong>${esc(r.spirit)}</strong></span>`);
   if (r.technique) metaItems.push(`<span class="vmeta">${esc(r.technique)}</span>`);
+  if (r.standardDrinks && !scalable) metaItems.push(`<span class="vmeta"><strong>${r.standardDrinks}</strong> std drinks</span>`);
   if (r.ice) metaItems.push(`<span class="vmeta">${esc(r.ice)} ice</span>`);
-  if (r.standardDrinks) {
-    const sd = r.standardDrinks;
-    if (scaleFactor === 1) {
-      metaItems.push(`<span class="vmeta"><strong>${sd}</strong> std drinks</span>`);
-    } else if (scaleFactor < 1) {
-      const scaled = Math.round(sd * scaleFactor * 10) / 10;
-      metaItems.push(`<span class="vmeta"><strong>${scaled}</strong> std drinks</span>`);
-    } else {
-      const total = Math.round(sd * scaleFactor * 10) / 10;
-      metaItems.push(`<span class="vmeta"><strong>${total}</strong> <span style="font-weight:400;font-size:0.78rem">(${scaleFactor} × ${sd})</span> std drinks</span>`);
-    }
-  }
+
 
   // Helper: get the override key for the current scaleFactor
   function overrideKey() {
@@ -5674,8 +5682,7 @@ async function saveRecipe() {
     if (nameVal) return false;
     const amt  = (desktopRow?.querySelector('.amount-inp')?.value
                || mobileRow?.querySelector('.amount-inp')?.value || '').trim();
-    const prep = (desktopRow?.querySelector('.prep-inp')?.value
-               || mobileRow?.querySelector('.prep-inp')?.value || '').trim();
+    const prep = '';
     const unit = (desktopRow?.querySelector('.unit-sel')?.value
                || desktopRow?.querySelector('.unit-manual')?.value
                || mobileRow?.querySelector('.unit-sel')?.value || '').trim();
@@ -5735,8 +5742,7 @@ async function saveRecipe() {
       const desktopAmtEl = wrap.querySelector('.ing-desktop-row .amount-inp');
       if (mobileAmtEl && desktopAmtEl && mobileAmtEl.value.trim() && !desktopVisible)
         desktopAmtEl.value = mobileAmtEl.value.trim();
-      const mobilePrepEl = wrap.querySelector('.mobile-prep');
-      const desktopPrepEl = wrap.querySelector('.ing-desktop-row .prep-inp');
+
       if (mobilePrepEl && desktopPrepEl && mobilePrepEl.value.trim() && !desktopVisible)
         desktopPrepEl.value = mobilePrepEl.value.trim();
       // Sync mobile unit-sel → desktop unit-sel (T33 fix: mobile unit was not being read)
@@ -5752,7 +5758,6 @@ async function saveRecipe() {
       // Always read unit from desktop row after sync — avoids picking up sub-entry unit-sels
       const unitSel  = desktopUnitSel || wrap.querySelector('.ing-desktop-row .unit-sel');
       const unitMan  = desktopUnitMan || wrap.querySelector('.ing-desktop-row .unit-manual');
-      const prepEl   = desktopPrepEl || wrap.querySelector('.prep-inp');
       const nsBtn    = wrap.querySelector('.noscale-toggle.on') || wrap.querySelector('.noscale-toggle');
       const name     = toTitleCase(nameEl?.value.trim() || '');
       const rawUnit  = unitMan ? unitMan.value.trim() : (unitSel?.value || '');
@@ -5784,8 +5789,7 @@ async function saveRecipe() {
           const mobileSubNote = entry.querySelector('.sub-note-mobile');
           const desktopSubNote = entry.querySelector('.sub-note-inp');
           if (mobileSubNote?.value.trim() && !subDesktopVisible) desktopSubNote && (desktopSubNote.value = mobileSubNote.value.trim());
-          const mobileSubPrep = entry.querySelector('.sub-prep-mobile');
-          const desktopSubPrep = entry.querySelector('.sub-prep-inp');
+
           if (mobileSubPrep?.value.trim() && !subDesktopVisible) desktopSubPrep && (desktopSubPrep.value = mobileSubPrep.value.trim());
 
           const sName = desktopSubName?.value.trim() || mobileSubName?.value.trim() || '';
@@ -6445,7 +6449,7 @@ function buildSubEntry(sub, parentAmt, parentUnit, parent) {
       <input type="text" class="sub-name" placeholder="Name" value="${esc(sub?.name||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
       <input type="number" class="sub-amt" placeholder="${amtPlaceholder}" min="0" step="any" value="${amt != null ? amt : ''}" style="text-align:right;border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
       ${buildUnitSelect(unit, pUnit)}
-      <input type="text" class="sub-prep-inp" placeholder="${esc(prepPlaceholder)}" value="${esc(sub?.prep||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
+
       <input type="text" class="sub-note-inp" placeholder="Reason" value="${esc(sub?.note||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
       ${buildGroupSelect(sub?.group||'')}
       <button class="ing-note-btn${subIngNote?' on':''}" title="Add note to this substitute" onclick="toggleSubIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1" width="7" height="8.5" rx="1"/><line x1="3" y1="3.5" x2="7" y2="3.5"/><line x1="3" y1="5.5" x2="7" y2="5.5"/><line x1="3" y1="7.5" x2="5.5" y2="7.5"/></svg></button>
@@ -6471,7 +6475,7 @@ function buildSubEntry(sub, parentAmt, parentUnit, parent) {
       <!-- Row 3: Prep + 📝 ⊘ buttons -->
       <div class="sub-mobile-row3">
         <div class="sub-mobile-field" style="flex:1;min-width:0">
-          <input type="text" class="sub-prep-mobile" placeholder="${esc(prepPlaceholder)}" value="${esc(sub?.prep||'')}" style="border:1px solid var(--accent);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;box-sizing:border-box">
+
         </div>
         <div class="sub-mobile-btn-group">
           <button class="ing-note-btn${subIngNote?' on':''}" title="Add note to this substitute" onclick="toggleSubIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1" width="7" height="8.5" rx="1"/><line x1="3" y1="3.5" x2="7" y2="3.5"/><line x1="3" y1="5.5" x2="7" y2="5.5"/><line x1="3" y1="7.5" x2="5.5" y2="7.5"/></svg></button>
@@ -6538,8 +6542,7 @@ function removeSubEntry(btn) {
     ? entry.querySelector('.sub-amt-mobile')?.value.trim() || ''
     : entry.querySelector('.sub-amt')?.value.trim() || '';
   const prep   = mobile
-    ? entry.querySelector('.sub-prep-mobile')?.value.trim() || ''
-    : entry.querySelector('.sub-prep-inp')?.value.trim() || '';
+    '';
   const reason = mobile
     ? entry.querySelector('.sub-note-mobile')?.value.trim() || ''
     : entry.querySelector('.sub-note-inp')?.value.trim() || '';
@@ -6619,7 +6622,7 @@ function addIngRow(btn, rowsEl, data) {
       <input type="number" placeholder="Amt" min="0" step="any" class="amount-inp"
         value="${amt != null ? amt : ''}">
       ${buildUnitSelect(unit)}
-      <input type="text" class="prep-inp" placeholder="Prep" value="${esc(data?.prep||'')}">
+
       <button class="sub-toggle${hasSub?' on':''}" title="Add substitute ingredient" onclick="toggleSubPanel(this)">⇄</button>
       <button class="ing-note-btn${ingNote?' on':''}" title="Add note" onclick="toggleIngNote(this)"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1" width="7" height="8.5" rx="1"/><line x1="3" y1="3.5" x2="7" y2="3.5"/><line x1="3" y1="5.5" x2="7" y2="5.5"/><line x1="3" y1="7.5" x2="5.5" y2="7.5"/></svg></button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleIngNoscale(this)" style="${scalable?'':'display:none'}">⊘</button>
@@ -6649,7 +6652,7 @@ function addIngRow(btn, rowsEl, data) {
           </div>
           <div class="ing-summary-meta">
             <span class="ing-summary-qty">${amt!=null&&amt!==''?amt+(unit?' '+unit:''):unit||''}</span>
-            ${data?.prep?`<span class="ing-summary-sep">–</span><span class="ing-summary-prep">${esc(data.prep)}</span>`:''}
+
           </div>
 
         </div>
@@ -6667,10 +6670,7 @@ function addIngRow(btn, rowsEl, data) {
             ${buildUnitSelect(unit)}
           </div>
         </div>
-        <!-- Row 3: Prep only -->
-        <div class="ing-field-group">
-          <input type="text" class="prep-inp mobile-prep" placeholder="Prep" value="${esc(data?.prep||'')}">
-        </div>
+
         <!-- Row 4: All toggle buttons, evenly spaced full width -->
         <div class="ing-mobile-btn-row">
           <button class="sub-toggle${hasSub?' on':''}" title="Add substitute" onclick="toggleSubPanel(this)">⇄</button>
@@ -6750,7 +6750,7 @@ function addSubEntry(btn, skipSnapshot) {
   // Read parent ingredient values to use as inherited defaults
   const parentAmt  = parseFloat(wrap.querySelector('.amount-inp')?.value) || null;
   const parentUnit = (wrap.querySelector('.unit-manual')?.value || wrap.querySelector('.unit-sel')?.value || '').trim();
-  const parentPrep = (wrap.querySelector('.prep-inp')?.value || '').trim();
+  const parentPrep = '';
   const parentNote = (wrap.querySelector('.ing-note-inp')?.value || '').trim();
   const parent = { amount: parentAmt, unit: parentUnit, prep: parentPrep, note: parentNote };
   const div = document.createElement('div');
@@ -6794,7 +6794,6 @@ function updateIngSummary(wrap) {
   if (!summary) return;
   const nameEl   = wrap.querySelector('.ing-name-mobile');
   const amtEl    = wrap.querySelector('.mobile-amt');
-  const prepEl   = wrap.querySelector('.mobile-prep');
   const unitSel  = wrap.querySelector('.ing-mobile-rows .unit-sel');
   const unitMan  = wrap.querySelector('.ing-mobile-rows .unit-manual');
   const name     = nameEl?.value.trim() || '';
