@@ -250,7 +250,7 @@ header{
 }
 .view-tags{display:flex;flex-wrap:wrap;gap:5px;padding:0.8rem 0;margin:0}
 .vtag{font-size:0.7rem;background:var(--tag-bg);color:var(--tag-text);padding:2px 8px;border-radius:10px}
-.view-meta{display:flex;flex-wrap:wrap;gap:1rem;padding:0.8rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:0}
+.view-meta{display:flex;flex-wrap:wrap;gap:1rem;padding:0.8rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:0 0 1.2rem 0}
 .vmeta{font-size:0.8rem;color:var(--ink-muted);display:flex;align-items:center;gap:4px}
 .vmeta svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;flex-shrink:0}
 .vmeta strong{color:var(--ink);font-weight:500}
@@ -1964,10 +1964,34 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.3';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.3',
+    title: 'Phase H — Quick fixes batch',
+    userNotes: [
+      'Scale buttons reordered: \u00bd\u00d7, 1\u00d7, 2\u00d7, 3\u00d7, 4\u00d7, 5\u00d7 (1\u00d7 still default). 4\u00d7 and 5\u00d7 buttons now appear in recipe view.',
+      'Recipe cards display in alphabetical order',
+      'New ingredient rows default to ml unit',
+      'Method steps: press Enter to create a new step, Shift+Enter for a line break within a step',
+      'Method step scale overrides now show original text when no override is provided (instead of "Does not scale")',
+      'More space between the meta row and Ingredients section in recipe view',
+      'Tags row removed from recipe view \u2014 tags are used for filtering only',
+      'Tags in the edit form now display in settings group order when a recipe is opened',
+    ],
+    items: [
+      'C114: Scale bar order \u00bd\u00d7,1\u00d7,2\u00d7,3\u00d7,4\u00d7,5\u00d7 + 4\u00d7/5\u00d7 buttons added to view',
+      'C115: Recipe cards sorted alphabetically (case-insensitive)',
+      'C116: Default unit ml for new ingredient rows',
+      'C117: Method step Enter=new step, Shift+Enter=line break',
+      'C118: Method override fallback uses original step text',
+      'C119: View meta margin-bottom:1.2rem',
+      'C120: Tags row removed from vbody.innerHTML',
+      'C121: sortTagsBySettings() applied on openEdit',
+    ]
+  },
   {
     version: '1.2',
     title: 'Settings reorder & icon picker fix',
@@ -5217,7 +5241,7 @@ function render() {
   }
 
   if (!groupBy) {
-    grid.innerHTML = filtered.map(makeCard).join('');
+    grid.innerHTML = filtered.sort((a,b) => (a.name||'').localeCompare(b.name||'', undefined, {sensitivity:'base'})).map(makeCard).join('');
   } else {
     // Group recipes — a recipe can appear in multiple groups
     const groupMap = new Map(); // group label -> Set of recipe ids (preserve order)
@@ -5464,8 +5488,8 @@ function renderViewBody(r) {
   const showQuint  = as.quintuple !== false;
   const scaleBarHtml = scalable ? `<div id="view-scale-bar" style="padding:0.4rem 0 0.8rem;display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border);margin:0;flex-wrap:wrap">
     <span style="font-size:0.72rem;color:var(--ink-faint);margin-right:2px">Scale:</span>
-    <button class="scale-seg${scaleFactor===1?' active':''}" data-scale="1" onclick="setScale(1)">1×</button>
     ${showHalf   ? `<button class="scale-seg${scaleFactor===0.5?' active':''}" data-scale="0.5" onclick="setScale(0.5)">½×</button>` : ''}
+    <button class="scale-seg${scaleFactor===1?' active':''}" data-scale="1" onclick="setScale(1)">1×</button>
     ${showDouble ? `<button class="scale-seg${scaleFactor===2?' active':''}" data-scale="2" onclick="setScale(2)">2×</button>` : ''}
     ${showTriple ? `<button class="scale-seg${scaleFactor===3?' active':''}" data-scale="3" onclick="setScale(3)">3×</button>` : ''}
     ${showQuad   ? `<button class="scale-seg${scaleFactor===4?' active':''}" data-scale="4" onclick="setScale(4)">4×</button>` : ''}
@@ -5708,8 +5732,7 @@ function renderViewBody(r) {
           displayText = typeof override === 'object' ? (override.text || text) : override;
           noteHtml = `<div style="font-size:0.72rem;color:var(--accent-text);font-style:italic;margin-top:2px">⟳ Override for ${scaleFactor}×</div>`;
         } else if (ns && scaled && key) {
-          // Flagged but no override — show "does not scale"
-          noteHtml = `<div class="vstep-noscale-note" style="display:block">⊘ Does not scale at ${scaleFactor}×</div>`;
+          // Flagged but no override — use original text (same as ingredient behaviour)
         }
 
         const stepNoteId = `step-note-${currentId}-${sec.title||'s'}-${i}`.replace(/[^a-z0-9-]/gi,'_');
@@ -5759,7 +5782,6 @@ function renderViewBody(r) {
     ${scaleBarHtml || stdDrinksRowHtml}
     ${groupBarHtml}
     ${r.status === 'draft' ? '<div class="draft-pill" style="margin-bottom:0.7rem">Draft</div>' : ''}
-    ${r.tags?.length ? `<div class="view-tags">${r.tags.map(t=>`<span class="vtag">${esc(t)}</span>`).join('')}</div>` : ''}
     ${metaItems.length ? `<div class="view-meta">${metaItems.join('')}</div>` : ''}
     ${ingHtml}${garnishHtml}${methHtml}${equipmentHtml}${notesHtml}`;
 }
@@ -6467,6 +6489,19 @@ function normaliseRecipes(arr) {
     if (r.scalable === undefined) r.scalable = true;
   });
   return arr;
+}
+
+function sortTagsBySettings(tags) {
+  const order = Object.values(TAG_GROUPS).flat();
+  return tags.sort((a, b) => {
+    const ai = order.findIndex(t => t.toLowerCase() === a.toLowerCase());
+    const bi = order.findIndex(t => t.toLowerCase() === b.toLowerCase());
+    // Known tags sort by settings order, unknown tags go to end
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
 }
 
 function renderFormTags() {
@@ -7555,6 +7590,25 @@ function addMethodSection(data) {
   const stepsEl = block.querySelector('.method-steps');
   if (data?.steps?.length) data.steps.forEach(s => addStep(null, stepsEl, s));
   else addStep(null, stepsEl);
+}
+
+function methodStepKeydown(e, textarea) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    // Find the step wrapper and the add-step button
+    const stepWrap = textarea.closest('.method-step');
+    const secCard = stepWrap?.closest('.sec-card');
+    if (!secCard) return;
+    const addBtn = secCard.querySelector('.add-step-btn');
+    const stepsEl = secCard.querySelector('.method-steps');
+    if (addBtn && stepsEl) {
+      addStep(addBtn, stepsEl);
+      // Focus the new step's textarea
+      const newStep = stepsEl.lastElementChild;
+      const newTextarea = newStep?.querySelector('.step-text');
+      if (newTextarea) newTextarea.focus();
+    }
+  }
 }
 
 function addStep(btn, stepsEl, stepData) {
