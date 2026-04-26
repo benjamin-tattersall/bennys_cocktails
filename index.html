@@ -1914,6 +1914,35 @@ let TECHNIQUE_OPTIONS = [...DEFAULT_TECHNIQUE_OPTIONS];
 let RETIRED_TECHNIQUES = [];
 
 const ICE_OPTIONS = ['Regular','Crushed','Large Cube','Sphere','Block','Pebble','Shaved'];
+// ── GLASS ICONS ──────────────────────────────────────────────────────────
+const GLASS_ICONS = {
+  'Rocks':        '<path d="M3.5 2h7l-.8 8.5a1 1 0 01-1 .9H5.3a1 1 0 01-1-.9L3.5 2z"/>',
+  'Double Rocks': '<path d="M3 2h8l-.9 9a1 1 0 01-1 .9H4.9a1 1 0 01-1-.9L3 2z"/>',
+  'Highball':     '<path d="M4 1h6l-.5 10.5a1 1 0 01-1 .9H5.5a1 1 0 01-1-.9L4 1z"/>',
+  'Collins':      '<path d="M4.2.5h5.6l-.5 11.5a1 1 0 01-1 .9H5.7a1 1 0 01-1-.9L4.2.5z"/>',
+  'Coupe':        '<path d="M3 1.5c0 0 .5 4.5 4 4.5s4-4.5 4-4.5"/><line x1="7" y1="6" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  'Martini':      '<path d="M2.5 1.5h9L7 6z"/><line x1="7" y1="6" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  'Nick & Nora':  '<path d="M3.5 1.5c0 0 .3 4 3.5 4s3.5-4 3.5-4"/><line x1="7" y1="5.5" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  'Wine':         '<ellipse cx="7" cy="4" rx="3.5" ry="3"/><line x1="7" y1="7" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  'Flute':        '<path d="M5.5 1h3l-.3 5.5a1 1 0 01-1 .9h-.4a1 1 0 01-1-.9L5.5 1z"/><line x1="7" y1="7.4" x2="7" y2="11"/><line x1="5.5" y1="11" x2="8.5" y2="11"/>',
+  'Hurricane':    '<path d="M4.5 1h5c0 0 .8 2.5 0 4.5S5.5 8 5.5 8c-.8 1-.5 2.5-.5 3.5"/><path d="M5 11.5h4"/><line x1="7" y1="8" x2="7" y2="11.5"/>',
+  'Tiki':         '<path d="M4 1.5h6l-.3 7a2 2 0 01-2 1.8H6.3a2 2 0 01-2-1.8L4 1.5z"/><circle cx="6" cy="4.5" r=".6"/><circle cx="8" cy="4.5" r=".6"/><path d="M5.5 6.5c.5.5 1.5.8 3 0"/>',
+  'Copper Mug':   '<path d="M4 2h5.5l-.3 8a1 1 0 01-1 .9H5.3a1 1 0 01-1-.9L4 2z"/><path d="M9.5 3.5c1.5 0 2 1 2 2s-.5 2-2 2"/>',
+  'Shot':         '<path d="M5 2h4l-.3 5.5a1 1 0 01-1 .9H6.3a1 1 0 01-1-.9L5 2z"/>',
+  'Snifter':      '<path d="M3.5 2c0 0 0 4 3.5 5s3.5-5 3.5-5"/><line x1="7" y1="7" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  'Glencairn':    '<path d="M4.5 2h5c0 0 .5 2-.5 4s-2 2-2 3"/><line x1="7" y1="9" x2="7" y2="11"/><line x1="5.5" y1="11" x2="8.5" y2="11"/>',
+  'Julep Cup':    '<path d="M3.5 3h7l-.5 7.5a1 1 0 01-1 .9H5a1 1 0 01-1-.9L3.5 3z"/><line x1="3.2" y1="3" x2="10.8" y2="3" stroke-width="1.8"/>',
+  'Punch Cup':    '<path d="M4 3h6l-.4 5.5a1 1 0 01-1 .9H5.4a1 1 0 01-1-.9L4 3z"/><path d="M10 4.5c1 0 1.5.7 1.5 1.3s-.5 1.2-1.5 1.2"/>',
+  'Other':        '<path d="M4 2h6l-.6 8a1 1 0 01-1 .9H5.6a1 1 0 01-1-.9L4 2z"/>',
+};
+const GLASS_ICON_FALLBACK = GLASS_ICONS['Other'];
+
+function glassIcon(name, size) {
+  size = size || 14;
+  const paths = GLASS_ICONS[name] || GLASS_ICON_FALLBACK;
+  return `<svg viewBox="0 0 14 13" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">${paths}</svg>`;
+}
+
 
 // Live copies — populated from settings in init()
 let TAG_GROUPS  = JSON.parse(JSON.stringify(DEFAULT_TAG_GROUPS));
@@ -1924,10 +1953,27 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.8';
+const APP_VERSION = '0.9';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '0.9',
+    title: 'Glass icons',
+    userNotes: [
+      'Each glass type now has a unique icon — 18 distinct silhouettes',
+      'Recipe cards show the glass icon only (no text) for a cleaner look',
+      'Recipe view shows the glass icon alongside the glass name',
+      'Frozen glasses display in blue with the snowflake indicator',
+      'Manually-typed glass types get a generic glass icon as fallback',
+    ],
+    items: [
+      'C61: GLASS_ICONS map with 18 SVG silhouettes + glassIcon() helper',
+      'C77: Card meta shows glass icon only, hover/title for glass name',
+      'View meta: glass icon displayed alongside text name',
+      'Frozen: icon + text both turn blue when glassFrozen is true',
+    ]
+  },
   {
     version: '0.8',
     title: 'View layout & settings refinements',
@@ -4935,7 +4981,10 @@ function render() {
   function makeCard(r) {
     const isDraft = r.status === 'draft';
     const metaParts = [];
-    if (r.glass) metaParts.push(`<span class="cmeta"><svg viewBox="0 0 14 14" style="width:11px;height:11px"><path d="M4 1h6l-1 7H5L4 1z" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="7" y1="8" x2="7" y2="12" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="1.2"/></svg>${esc(r.glass)}</span>`);
+    if (r.glass) {
+      const frozenColor = r.glassFrozen ? 'color:#70b8e8' : '';
+      metaParts.push(`<span class="cmeta" style="${frozenColor}" title="${esc(r.glass)}${r.glassFrozen?' (frozen)':''}">${glassIcon(r.glass, 13)}</span>`);
+    }
 
     return `<div class="rcard${isDraft?' draft':''}" onclick="viewRecipe(${r.id})">
       <div class="card-stripe${isDraft?' draft':''}"></div>
@@ -5213,7 +5262,8 @@ function renderViewBody(r) {
   if (r.glass) {
     const frozenStyle = r.glassFrozen ? ' style="color:#70b8e8"' : '';
     const snowflake = r.glassFrozen ? '<svg viewBox="0 0 10 10" width="5" height="5" fill="none" stroke="#70b8e8" stroke-width="1.5" stroke-linecap="round" style="margin-left:3px"><line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="5" x2="9" y2="5"/><line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/></svg>' : '';
-    metaItems.push(`<span class="vmeta"><svg viewBox="0 0 14 14" style="width:12px;height:12px"><path d="M4 1h6l-1 7H5L4 1z" fill="none" stroke="currentColor" stroke-width="1.2"/><line x1="7" y1="8" x2="7" y2="12" stroke="currentColor" stroke-width="1.2"/><line x1="5" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="1.2"/></svg><strong${frozenStyle}>${esc(r.glass)}</strong>${snowflake}</span>`);
+    const iconColor = r.glassFrozen ? 'color:#70b8e8' : '';
+    metaItems.push(`<span class="vmeta" style="${iconColor}">${glassIcon(r.glass, 14)}<strong${frozenStyle}>${esc(r.glass)}</strong>${snowflake}</span>`);
   }
   if (r.technique) metaItems.push(`<span class="vmeta">${esc(r.technique)}</span>`);
   // For non-scalable recipes, build a standalone std drinks row where scale bar would be
