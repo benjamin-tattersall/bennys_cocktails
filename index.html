@@ -1936,12 +1936,18 @@ const GLASS_ICONS = {
   'Other':        '<path d="M4 2h6l-.6 8a1 1 0 01-1 .9H5.6a1 1 0 01-1-.9L4 2z"/>',
 };
 const GLASS_ICON_FALLBACK = GLASS_ICONS['Other'];
+let GLASS_ICON_MAP = {}; // user overrides: glass name → icon key. Empty = use name match or fallback.
 
 function glassIcon(name, size) {
   size = size || 14;
-  const paths = GLASS_ICONS[name] || GLASS_ICON_FALLBACK;
+  const iconKey = GLASS_ICON_MAP[name] || name;
+  const paths = GLASS_ICONS[iconKey] || GLASS_ICON_FALLBACK;
   return `<svg viewBox="0 0 14 13" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">${paths}</svg>`;
 }
+
+function glassIconKeys() { return Object.keys(GLASS_ICONS); }
+function getGlassIconKey(glassName) { return GLASS_ICON_MAP[glassName] || (GLASS_ICONS[glassName] ? glassName : 'Other'); }
+function setGlassIconKey(glassName, iconKey) { GLASS_ICON_MAP[glassName] = iconKey; saveSettings(); }
 
 
 // Live copies — populated from settings in init()
@@ -1953,10 +1959,28 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '0.9';
+const APP_VERSION = '1.0';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.0',
+    title: 'Glass icon picker',
+    userNotes: [
+      'Settings \u2192 Glasses now shows each glass with its icon in a list layout',
+      'Tap any glass icon to open the icon picker \u2014 choose from all 18 glass silhouettes',
+      'Custom glass types can be assigned any icon from the built-in set',
+      'When renaming a glass, the icon assignment carries over to the new name',
+      'New glass types default to the generic glass icon',
+    ],
+    items: [
+      'GLASS_ICON_MAP: persisted mapping of glass name \u2192 icon key',
+      'glassIcon() now checks GLASS_ICON_MAP before falling back to name match',
+      'Settings \u2192 Glasses: list layout with icon button, name, rename, delete',
+      'Icon picker: 6-column grid overlay with all 18 icons, highlight for current selection',
+      'executeRenameGlass carries icon mapping to new name',
+    ]
+  },
   {
     version: '0.9',
     title: 'Glass icons',
@@ -2952,6 +2976,7 @@ function buildSettingsObj() {
     garnishGroups: GARNISH_GROUPS,
     glassOptions: GLASS_OPTIONS,
     retiredGlasses: RETIRED_GLASSES,
+    glassIconMap: GLASS_ICON_MAP,
     baseSpiritOptions: BASE_SPIRIT_OPTIONS,
     retiredBaseSpirits: RETIRED_BASE_SPIRITS,
     techniqueOptions: TECHNIQUE_OPTIONS,
@@ -3008,6 +3033,7 @@ function applySettingsObj(s) {
   GARNISH_OPTIONS.sort((a,b) => a.localeCompare(b));
   if (s.glassOptions) GLASS_OPTIONS = s.glassOptions;
   if (s.retiredGlasses) RETIRED_GLASSES = s.retiredGlasses;
+  if (s.glassIconMap) GLASS_ICON_MAP = s.glassIconMap;
   if (s.baseSpiritOptions) BASE_SPIRIT_OPTIONS = s.baseSpiritOptions;
   if (s.retiredBaseSpirits) RETIRED_BASE_SPIRITS = s.retiredBaseSpirits;
   if (s.techniqueOptions) TECHNIQUE_OPTIONS = s.techniqueOptions;
@@ -3706,22 +3732,25 @@ function renderStgGlasses() {
   if (!pane) return;
   const activeGlasses = GLASS_OPTIONS.filter(g => !RETIRED_GLASSES.includes(g));
 
-  const pills = activeGlasses.map(g => {
+  const rows = activeGlasses.map(g => {
     const safeG = esc(g).replace(/'/g, "\\'");
-    return `<span class="stg-tag">
-      ${esc(g)}
-      <button onclick="startRenameGlass('${safeG}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button>
-      <button onclick="removeGlass('${safeG}')" title="Remove">×</button>
-    </span>`;
+    return `<div class="stg-glass-row" style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
+      <button onclick="openGlassIconPicker('${safeG}')" class="stg-glass-icon-btn" title="Change icon" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px;cursor:pointer;color:var(--ink-muted);display:flex;align-items:center;justify-content:center;width:30px;height:30px;flex-shrink:0;transition:border-color .12s">
+        ${glassIcon(g, 18)}
+      </button>
+      <span style="flex:1;font-size:0.82rem;color:var(--ink)">${esc(g)}</span>
+      <button onclick="startRenameGlass('${safeG}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">\u270e</button>
+      <button onclick="removeGlass('${safeG}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">\u00d7</button>
+    </div>`;
   }).join('');
 
   pane.innerHTML = `
     <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">
-      Manage glass types for the edit form dropdown. Use ✎ to rename.
+      Manage glass types and their icons. Tap an icon to change it.
     </div>
     <div class="stg-group">
       <div class="stg-group-head"><span class="stg-group-name">Glass Types</span></div>
-      <div class="stg-group-body" id="stg-glass-body">${pills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No glass types yet \u2014 add one below.</span>'}</div>
+      <div class="stg-group-body" id="stg-glass-body" style="display:flex;flex-direction:column;gap:0">${rows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No glass types yet \u2014 add one below.</span>'}</div>
       <div style="padding:0 0.9rem 0.7rem">
         <div class="stg-add-row">
           <input type="text" placeholder="Add glass type\u2026" id="new-glass-input"
@@ -3729,8 +3758,51 @@ function renderStgGlasses() {
           <button onclick="addGlass()">Add</button>
         </div>
       </div>
-    </div>`;
+    </div>
+    <div id="glass-icon-picker-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:600" onclick="closeGlassIconPicker()"></div>
+    <div id="glass-icon-picker" style="display:none;position:fixed;z-index:601;background:var(--paper);border:1px solid var(--border);border-radius:var(--radius-lg,10px);padding:12px;box-shadow:0 8px 30px rgba(0,0,0,.4);max-width:280px;width:90%"></div>`;
 }
+
+// \u2500\u2500 GLASS ICON PICKER \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+let _iconPickerGlass = null;
+
+function openGlassIconPicker(glassName) {
+  _iconPickerGlass = glassName;
+  const picker = document.getElementById('glass-icon-picker');
+  const overlay = document.getElementById('glass-icon-picker-overlay');
+  const currentKey = getGlassIconKey(glassName);
+  const keys = glassIconKeys();
+
+  picker.innerHTML = `<div style="font-size:0.8rem;font-weight:500;color:var(--ink);margin-bottom:8px">Choose icon for "${esc(glassName)}"</div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">
+      ${keys.map(k => {
+        const safeK = k.replace(/'/g, "\\'");
+        return `<button onclick="selectGlassIcon('${safeK}')" title="${esc(k)}" style="background:${k===currentKey?'var(--accent-light)':'none'};border:1px solid ${k===currentKey?'var(--accent)':'var(--border)'};border-radius:6px;padding:6px;cursor:pointer;color:${k===currentKey?'var(--accent-text)':'var(--ink-muted)'};display:flex;align-items:center;justify-content:center;transition:all .12s">
+          ${glassIcon(k, 22)}
+        </button>`;
+      }).join('')}
+    </div>`;
+
+  picker.style.display = 'block';
+  picker.style.top = '50%';
+  picker.style.left = '50%';
+  picker.style.transform = 'translate(-50%,-50%)';
+  overlay.style.display = 'block';
+}
+
+function selectGlassIcon(iconKey) {
+  if (!_iconPickerGlass) return;
+  setGlassIconKey(_iconPickerGlass, iconKey);
+  closeGlassIconPicker();
+  renderStgGlasses();
+}
+
+function closeGlassIconPicker() {
+  document.getElementById('glass-icon-picker').style.display = 'none';
+  document.getElementById('glass-icon-picker-overlay').style.display = 'none';
+  _iconPickerGlass = null;
+}
+
 
 function addGlass() {
   const input = document.getElementById('new-glass-input');
@@ -3789,9 +3861,9 @@ function doRemoveGlass(g, removeFromRecipes) {
 function startRenameGlass(g) {
   const body = document.getElementById('stg-glass-body');
   if (!body) return;
-  const pills = body.querySelectorAll('.stg-tag');
+  const pills = body.querySelectorAll('.stg-glass-row');
   for (const pill of pills) {
-    if (pill.textContent.trim().startsWith(g)) {
+    if (pill.querySelector('span')?.textContent.trim() === g) {
       const editWrap = document.createElement('span');
       editWrap.className = 'stg-tag-edit-wrap';
       const safeG = g.replace(/'/g, "\\'");
@@ -3831,6 +3903,8 @@ function confirmRenameGlass(oldG) {
 function executeRenameGlass(oldG, newG) {
   GLASS_OPTIONS = GLASS_OPTIONS.map(x => x === oldG ? newG : x);
   RETIRED_GLASSES = RETIRED_GLASSES.map(x => x === oldG ? newG : x);
+  // Carry icon mapping to new name
+  if (GLASS_ICON_MAP[oldG]) { GLASS_ICON_MAP[newG] = GLASS_ICON_MAP[oldG]; delete GLASS_ICON_MAP[oldG]; }
   recipes.forEach(r => { if (r.glass === oldG) r.glass = newG; });
   saveSettings();
   syncToGist();
