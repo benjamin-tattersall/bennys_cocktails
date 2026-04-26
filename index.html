@@ -1945,6 +1945,11 @@ function glassIcon(name, size) {
   return `<svg viewBox="0 0 14 13" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">${paths}</svg>`;
 }
 
+function rawGlassIcon(iconKey, size) {
+  size = size || 14;
+  const paths = GLASS_ICONS[iconKey] || GLASS_ICON_FALLBACK;
+  return `<svg viewBox="0 0 14 13" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0">${paths}</svg>`;
+}
 function glassIconKeys() { return Object.keys(GLASS_ICONS); }
 function getGlassIconKey(glassName) { return GLASS_ICON_MAP[glassName] || (GLASS_ICONS[glassName] ? glassName : 'Other'); }
 function setGlassIconKey(glassName, iconKey) { GLASS_ICON_MAP[glassName] = iconKey; saveSettings(); }
@@ -1959,10 +1964,26 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.1';
+const APP_VERSION = '1.2';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.2',
+    title: 'Settings reorder & icon picker fix',
+    userNotes: [
+      'Fixed: glass icon picker now shows the correct icon for each glass type (not the mapped version)',
+      'All settings pages now have reorder arrows (\u25b2 \u25bc) on every item',
+      'Tag and Garnish categories can also be reordered with arrows on the group headers',
+      'Reorder arrows are disabled at the top/bottom of each list',
+    ],
+    items: [
+      'Fix: rawGlassIcon() bypasses GLASS_ICON_MAP for picker grid',
+      'C113: reorder arrows on Tags (items + groups), Garnishes (items + groups), Units, Glasses, Base Spirits, Techniques',
+      'moveInArray helper + per-type reorder functions',
+      'Tag/Garnish group reorder rebuilds the object key order',
+    ]
+  },
   {
     version: '1.1',
     title: 'Card layout & method scale fix',
@@ -3094,6 +3115,75 @@ function switchStgPane(name) {
 }
 
 // ── SETTINGS: TAGS ────────────────────────────────────────────────────────
+// ── REORDER HELPERS ───────────────────────────────────────────────────────
+function moveInArray(arr, fromIdx, toIdx) {
+  if (fromIdx < 0 || fromIdx >= arr.length || toIdx < 0 || toIdx >= arr.length) return;
+  const [item] = arr.splice(fromIdx, 1);
+  arr.splice(toIdx, 0, item);
+}
+
+function reorderTag(group, tag, dir) {
+  const tags = TAG_GROUPS[group];
+  if (!tags) return;
+  const idx = tags.indexOf(tag);
+  if (idx < 0) return;
+  moveInArray(tags, idx, idx + dir);
+  saveSettings(); renderStgTags();
+}
+
+function reorderTagGroup(group, dir) {
+  const keys = Object.keys(TAG_GROUPS);
+  const idx = keys.indexOf(group);
+  if (idx < 0) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= keys.length) return;
+  // Rebuild TAG_GROUPS in new order
+  const entries = Object.entries(TAG_GROUPS);
+  moveInArray(entries, idx, newIdx);
+  const newGroups = {};
+  entries.forEach(([k, v]) => newGroups[k] = v);
+  // Clear and repopulate
+  for (const k of Object.keys(TAG_GROUPS)) delete TAG_GROUPS[k];
+  Object.assign(TAG_GROUPS, newGroups);
+  saveSettings(); renderStgTags();
+}
+
+function reorderGarnish(group, item, dir) {
+  const items = GARNISH_GROUPS[group];
+  if (!items) return;
+  const idx = items.indexOf(item);
+  if (idx < 0) return;
+  moveInArray(items, idx, idx + dir);
+  saveSettings(); renderStgGarnishes();
+}
+
+function reorderGarnishGroup(group, dir) {
+  const entries = Object.entries(GARNISH_GROUPS);
+  const idx = entries.findIndex(([k]) => k === group);
+  if (idx < 0) return;
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= entries.length) return;
+  moveInArray(entries, idx, newIdx);
+  const newGroups = {};
+  entries.forEach(([k, v]) => newGroups[k] = v);
+  for (const k of Object.keys(GARNISH_GROUPS)) delete GARNISH_GROUPS[k];
+  Object.assign(GARNISH_GROUPS, newGroups);
+  saveSettings(); renderStgGarnishes();
+}
+
+function reorderInList(list, item, dir, renderFn) {
+  const idx = list.indexOf(item);
+  if (idx < 0) return;
+  moveInArray(list, idx, idx + dir);
+  saveSettings(); renderFn();
+}
+
+function reorderArrows(item, idx, total, onUp, onDown) {
+  const upDisabled = idx === 0 ? ' disabled' : '';
+  const downDisabled = idx === total - 1 ? ' disabled' : '';
+  return `<button class="reorder-btn"${upDisabled} onclick="${onUp}" title="Move up">▲</button><button class="reorder-btn"${downDisabled} onclick="${onDown}" title="Move down">▼</button>`;
+}
+
 function renderStgTags() {
   const pane = document.getElementById('stg-pane-tags');
   let html = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">
@@ -3103,25 +3193,30 @@ function renderStgTags() {
     const defaultTags = DEFAULT_TAG_GROUPS[group] || [];
     const isCustomGroup = !DEFAULT_TAG_GROUPS[group];
     const isOther = group === 'Other';
-    const tagPills = tags.map(t => {
+    const tagPills = tags.map((t, tIdx) => {
       const isCustom = false;
       const safeT = t.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const safeG = group.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const moveBtn = isOther
         ? `<button class="move-btn" onclick="startMoveTag('${safeT}')" title="Move to another category">→</button>`
         : '';
+      const arrows = reorderArrows(t, tIdx, tags.length, `reorderTag('${safeG}','${safeT}',-1)`, `reorderTag('${safeG}','${safeT}',1)`);
       return `<span class="stg-tag${isCustom?' custom':''}">
         ${esc(t)}
         <button onclick="startRenameTag('${safeG}','${safeT}')" title="Rename tag" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button>
         ${moveBtn}
         <button onclick="removeTagFromGroup('${safeG}','${safeT}')" title="Remove tag">×</button>
+        ${arrows}
       </span>`;
     }).join('');
     const safeGroup = group.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     html += `<div class="stg-group">
       <div class="stg-group-head">
         <span class="stg-group-name">${esc(group)}</span>
-        ${isCustomGroup && !isOther ? `<button onclick="removeTagCategory('${safeGroup}')" style="background:none;border:none;cursor:pointer;font-size:0.75rem;color:var(--ink-faint);padding:0" title="Remove category">Remove category</button>` : ''}
+        <span style="margin-left:auto;display:flex;gap:3px;align-items:center">
+          ${(() => { const gKeys = Object.keys(TAG_GROUPS); const gIdx = gKeys.indexOf(group); return reorderArrows(group, gIdx, gKeys.length, `reorderTagGroup('${safeGroup}',-1)`, `reorderTagGroup('${safeGroup}',1)`); })()}
+          ${isCustomGroup && !isOther ? `<button onclick="removeTagCategory('${safeGroup}')" style="background:none;border:none;cursor:pointer;font-size:0.75rem;color:var(--ink-faint);padding:0 0 0 6px" title="Remove category">Remove</button>` : ''}
+        </span>
       </div>
       <div class="stg-group-body" id="stg-group-body-${esc(group)}">${tagPills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No tags yet — add one below.</span>'}</div>
       <div style="padding:0 0.9rem 0.7rem">
@@ -3384,12 +3479,14 @@ function renderStgUnits() {
   const pane = document.getElementById('stg-pane-units');
   const customUnits = (UNIT_GROUPS['Custom units'] || []).filter(u => !RETIRED_UNITS.includes(u));
 
-  const pills = customUnits.map(u => {
+  const pills = customUnits.map((u, uIdx) => {
     const safeU = esc(u).replace(/'/g,"\\'");
+    const arrows = reorderArrows(u, uIdx, customUnits.length, `reorderUnit('${safeU}',-1)`, `reorderUnit('${safeU}',1)`);
     return `<span class="stg-tag">
       ${esc(u)}
       <button onclick="startRenameUnit('${safeU}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button>
       <button onclick="removeUnit('${safeU}')" title="Remove">×</button>
+      ${arrows}
     </span>`;
   }).join('');
 
@@ -3433,6 +3530,18 @@ function addUnitToGroup(group) {
   renderStgUnits();
   input.value = '';
   toast(`"${unit}" added`);
+}
+
+function reorderUnit(unit, dir) {
+  const customUnits = (UNIT_GROUPS['Custom units'] || []).filter(u => !RETIRED_UNITS.includes(u));
+  const idx = customUnits.indexOf(unit);
+  if (idx < 0) return;
+  // Find in actual UNIT_GROUPS and reorder
+  const all = UNIT_GROUPS['Custom units'];
+  const realIdx = all.indexOf(unit);
+  if (realIdx < 0) return;
+  moveInArray(all, realIdx, realIdx + dir);
+  saveSettings(); renderStgUnits();
 }
 
 function removeUnit(unit) {
@@ -3575,7 +3684,10 @@ function renderStgGarnishes() {
     html += `<div class="stg-group">
       <div class="stg-group-head">
         <span class="stg-group-name">${esc(group)}</span>
-        ${isCustomGroup ? `<button onclick="removeGarnishCategory('${safeGroup}')" style="background:none;border:none;cursor:pointer;font-size:0.75rem;color:var(--ink-faint);padding:0" title="Remove category">Remove category</button>` : ''}
+        <span style="margin-left:auto;display:flex;gap:3px;align-items:center">
+          ${(() => { const gKeys = Object.keys(GARNISH_GROUPS); const gIdx = gKeys.indexOf(group); return reorderArrows(group, gIdx, gKeys.length, `reorderGarnishGroup('${safeGroup}',-1)`, `reorderGarnishGroup('${safeGroup}',1)`); })()}
+          ${isCustomGroup ? `<button onclick="removeGarnishCategory('${safeGroup}')" style="background:none;border:none;cursor:pointer;font-size:0.75rem;color:var(--ink-faint);padding:0 0 0 6px" title="Remove category">Remove</button>` : ''}
+        </span>
       </div>
       <div class="stg-group-body" id="stg-garnish-body-${esc(group)}">${pills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No garnishes yet \u2014 add one below.</span>'}</div>
       <div style="padding:0 0.9rem 0.7rem">
@@ -3791,7 +3903,7 @@ function openGlassIconPicker(glassName) {
       ${keys.map(k => {
         const safeK = k.replace(/'/g, "\\'");
         return `<button onclick="selectGlassIcon('${safeK}')" title="${esc(k)}" style="background:${k===currentKey?'var(--accent-light)':'none'};border:1px solid ${k===currentKey?'var(--accent)':'var(--border)'};border-radius:6px;padding:6px;cursor:pointer;color:${k===currentKey?'var(--accent-text)':'var(--ink-muted)'};display:flex;align-items:center;justify-content:center;transition:all .12s">
-          ${glassIcon(k, 22)}
+          ${rawGlassIcon(k, 22)}
         </button>`;
       }).join('')}
     </div>`;
@@ -3816,6 +3928,20 @@ function closeGlassIconPicker() {
   _iconPickerGlass = null;
 }
 
+
+function reorderGlass(g, dir) {
+  const active = GLASS_OPTIONS.filter(x => !RETIRED_GLASSES.includes(x));
+  const idx = active.indexOf(g);
+  if (idx < 0) return;
+  const realIdx = GLASS_OPTIONS.indexOf(g);
+  if (realIdx < 0) return;
+  // Find target in GLASS_OPTIONS (skip retired)
+  let targetReal = realIdx + dir;
+  while (targetReal >= 0 && targetReal < GLASS_OPTIONS.length && RETIRED_GLASSES.includes(GLASS_OPTIONS[targetReal])) targetReal += dir;
+  if (targetReal < 0 || targetReal >= GLASS_OPTIONS.length) return;
+  moveInArray(GLASS_OPTIONS, realIdx, targetReal);
+  saveSettings(); renderStgGlasses();
+}
 
 function addGlass() {
   const input = document.getElementById('new-glass-input');
@@ -3931,15 +4057,20 @@ function renderStgBaseSpirits() {
   const pane = document.getElementById('stg-pane-spirits');
   if (!pane) return;
   const active = BASE_SPIRIT_OPTIONS.filter(s => !RETIRED_BASE_SPIRITS.includes(s));
-  const pills = active.map(s => {
+  const pills = active.map((s, sIdx) => {
     const safeS = esc(s).replace(/'/g, "\\'");
-    return `<span class="stg-tag">${esc(s)}<button onclick="startRenameBaseSpirit('${safeS}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button><button onclick="removeBaseSpirit('${safeS}')" title="Remove">×</button></span>`;
+    const arrows = reorderArrows(s, sIdx, active.length, `reorderBaseSpirit('${safeS}',-1)`, `reorderBaseSpirit('${safeS}',1)`);
+    return `<span class="stg-tag">${esc(s)}<button onclick="startRenameBaseSpirit('${safeS}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button><button onclick="removeBaseSpirit('${safeS}')" title="Remove">×</button>${arrows}</span>`;
   }).join('');
   pane.innerHTML = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">Manage base spirit options for the edit form dropdown. These represent broad cocktail classifications. For granular spirit tagging, use the Spirit category in Tags.</div>
     <div class="stg-group"><div class="stg-group-head"><span class="stg-group-name">Base Spirits</span></div>
     <div class="stg-group-body" id="stg-spirit-body">${pills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No base spirits yet.</span>'}</div>
     <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add base spirit…" id="new-spirit-input" onkeydown="if(event.key==='Enter'){addBaseSpirit();event.preventDefault()}"><button onclick="addBaseSpirit()">Add</button></div></div></div>`;
 }
+function reorderBaseSpirit(s, dir) {
+  reorderInList(BASE_SPIRIT_OPTIONS, s, dir, renderStgBaseSpirits);
+}
+
 function addBaseSpirit() {
   const input = document.getElementById('new-spirit-input'); const s = toTitleCase(input.value.trim()); if (!s) return;
   if (BASE_SPIRIT_OPTIONS.map(x=>x.toLowerCase()).includes(s.toLowerCase())) {
@@ -3972,15 +4103,20 @@ function confirmRenameBaseSpirit(oldS) {
 function renderStgTechniques() {
   const pane = document.getElementById('stg-pane-techniques'); if(!pane) return;
   const active = TECHNIQUE_OPTIONS.filter(t=>!RETIRED_TECHNIQUES.includes(t));
-  const pills = active.map(t => {
+  const pills = active.map((t, tIdx) => {
     const safeT = esc(t).replace(/'/g, "\\'");
-    return `<span class="stg-tag">${esc(t)}<button onclick="startRenameTechnique('${safeT}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button><button onclick="removeTechnique('${safeT}')" title="Remove">×</button></span>`;
+    const arrows = reorderArrows(t, tIdx, active.length, `reorderTechnique('${safeT}',-1)`, `reorderTechnique('${safeT}',1)`);
+    return `<span class="stg-tag">${esc(t)}<button onclick="startRenameTechnique('${safeT}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button><button onclick="removeTechnique('${safeT}')" title="Remove">×</button>${arrows}</span>`;
   }).join('');
   pane.innerHTML = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">Manage technique options for the edit form dropdown.</div>
     <div class="stg-group"><div class="stg-group-head"><span class="stg-group-name">Techniques</span></div>
     <div class="stg-group-body" id="stg-technique-body">${pills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No techniques yet.</span>'}</div>
     <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add technique…" id="new-technique-input" onkeydown="if(event.key==='Enter'){addTechnique();event.preventDefault()}"><button onclick="addTechnique()">Add</button></div></div></div>`;
 }
+function reorderTechnique(t, dir) {
+  reorderInList(TECHNIQUE_OPTIONS, t, dir, renderStgTechniques);
+}
+
 function addTechnique() {
   const input=document.getElementById('new-technique-input'); const t=toTitleCase(input.value.trim()); if(!t) return;
   if(TECHNIQUE_OPTIONS.map(x=>x.toLowerCase()).includes(t.toLowerCase())){
