@@ -151,20 +151,20 @@ header{
 .result-info{font-size:0.8rem;color:var(--ink-faint);margin-bottom:0.9rem}
 
 /* ── GRID ── */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:0.8rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0.8rem}
 .rcard{
   background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);
   overflow:hidden;cursor:pointer;
   transition:transform .15s,box-shadow .15s,border-color .15s;
-  display:flex;flex-direction:column;
+  display:flex;flex-direction:row;
 }
 .rcard:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.35);border-color:var(--border-mid)}
 .rcard.draft{border-style:dashed;border-color:var(--border-mid)}
-.card-stripe{height:4px;background:var(--accent);opacity:.65}
-.card-stripe.draft{background:var(--ink-faint);opacity:.5}
-.card-body{padding:0.8rem 0.9rem 0.9rem;flex:1;display:flex;flex-direction:column;gap:0.55rem}
-.card-name{font-family:'Playfair Display',serif;font-size:0.92rem;font-weight:500;line-height:1.3;color:var(--ink)}
-.card-meta{display:flex;gap:0.75rem;margin-top:auto;padding-top:0.4rem}
+.card-stripe{display:none}
+.card-stripe.draft{display:none}
+.card-body{padding:0.7rem 0.85rem;flex:1;display:flex;flex-direction:row;align-items:center;gap:0.5rem;min-width:0}
+.card-name{font-family:'Playfair Display',serif;font-size:0.92rem;font-weight:500;line-height:1.3;color:var(--ink);flex:1;min-width:0}
+.card-meta{display:flex;gap:0.5rem;align-items:center;flex-shrink:0}
 .draft-pill{
   display:inline-flex;align-items:center;gap:3px;
   font-size:0.65rem;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;
@@ -1959,10 +1959,23 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.0';
+const APP_VERSION = '1.1';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.1',
+    title: 'Card layout & method scale fix',
+    userNotes: [
+      'Recipe cards are now single-row \u2014 cocktail name on the left, glass icon on the right',
+      'Cards are wider on desktop to prevent name wrapping',
+      'Method step scale overrides now respect the active scale toggles (matching ingredient behaviour)',
+    ],
+    items: [
+      'C111: Card layout \u2014 flex-direction:row, name flex:1, glass icon right, card stripe removed, wider grid (220px min)',
+      'C112: Method step override rows get ns-half-row/ns-double-row/etc classes for updateScaleOptions visibility',
+    ]
+  },
   {
     version: '1.0',
     title: 'Glass icon picker',
@@ -5054,18 +5067,15 @@ function render() {
   // build a single card HTML
   function makeCard(r) {
     const isDraft = r.status === 'draft';
-    const metaParts = [];
-    if (r.glass) {
-      const frozenColor = r.glassFrozen ? 'color:#70b8e8' : '';
-      metaParts.push(`<span class="cmeta" style="${frozenColor}" title="${esc(r.glass)}${r.glassFrozen?' (frozen)':''}">${glassIcon(r.glass, 13)}</span>`);
-    }
+    const draftBadge = isDraft ? '<span class="draft-pill" style="margin:0;flex-shrink:0">Draft</span>' : '';
+    const glassHtml = r.glass
+      ? `<span style="flex-shrink:0;display:flex;align-items:center;${r.glassFrozen?'color:#70b8e8':''}" title="${esc(r.glass)}${r.glassFrozen?' (frozen)':''}">${glassIcon(r.glass, 16)}</span>`
+      : '';
 
     return `<div class="rcard${isDraft?' draft':''}" onclick="viewRecipe(${r.id})">
-      <div class="card-stripe${isDraft?' draft':''}"></div>
       <div class="card-body">
-        ${isDraft ? '<div class="draft-pill">Draft</div>' : ''}
         <div class="card-name">${esc(r.name)}</div>
-        ${metaParts.length ? `<div class="card-meta">${metaParts.join('')}</div>` : ''}
+        ${draftBadge}${glassHtml}
       </div>
     </div>`;
   }
@@ -7434,11 +7444,11 @@ function addStep(btn, stepsEl, stepData) {
       <input type="text" class="step-note-inp" placeholder="Note" value="${esc(stepNote)}" style="border:1px solid var(--note-border);border-radius:5px;padding:4px 6px;font-family:'Instrument Sans',sans-serif;font-size:0.76rem;color:var(--ink);background:var(--cream);outline:none;width:100%;box-sizing:border-box">
     </div>
     <div class="noscale-note-row${ns?' show':''}">
-      <div class="scale-override-row"><span class="scale-override-lbl">½×</span><input class="ns-half"   placeholder="½× override" value="${esc(ov.half||'')}"></div>
-      <div class="scale-override-row"><span class="scale-override-lbl">2×</span><input class="ns-double" placeholder="2× override" value="${esc(ov.double||'')}"></div>
-      <div class="scale-override-row"><span class="scale-override-lbl">3×</span><input class="ns-triple" placeholder="3× override" value="${esc(ov.triple||'')}"></div>
-      <div class="scale-override-row"><span class="scale-override-lbl">4×</span><input class="ns-quadruple" placeholder="4× override" value="${esc(ov.quadruple||'')}"></div>
-      <div class="scale-override-row"><span class="scale-override-lbl">5×</span><input class="ns-quintuple" placeholder="5× override" value="${esc(ov.quintuple||'')}"></div>
+      <div class="scale-override-row ns-half-row"><span class="scale-override-lbl">½×</span><input class="ns-half"   placeholder="½× override" value="${esc(ov.half||'')}"></div>
+      <div class="scale-override-row ns-double-row"><span class="scale-override-lbl">2×</span><input class="ns-double" placeholder="2× override" value="${esc(ov.double||'')}"></div>
+      <div class="scale-override-row ns-triple-row"><span class="scale-override-lbl">3×</span><input class="ns-triple" placeholder="3× override" value="${esc(ov.triple||'')}"></div>
+      <div class="scale-override-row ns-quadruple-row"><span class="scale-override-lbl">4×</span><input class="ns-quadruple" placeholder="4× override" value="${esc(ov.quadruple||'')}"></div>
+      <div class="scale-override-row ns-quintuple-row"><span class="scale-override-lbl">5×</span><input class="ns-quintuple" placeholder="5× override" value="${esc(ov.quintuple||'')}"></div>
     </div>`;
   stepsEl.appendChild(wrap);
   const ta = wrap.querySelector('.step-ta');
