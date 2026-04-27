@@ -1971,10 +1971,26 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.8';
+const APP_VERSION = '1.9';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.9',
+    title: 'Settings row layout & tag dedup',
+    userNotes: [
+      'Fixed: custom tags no longer show as duplicates in Settings',
+      'All settings pages converted from pill layout to individual rows',
+      'Each item shows: name, \u25b2\u25bc reorder arrows, \u270e rename, \u00d7 delete on its own row',
+      'Tag and Garnish categories keep their group headers with group-level reorder',
+      'Glass settings already had row layout (with icon picker) — unchanged',
+    ],
+    items: [
+      'Tag dedup: case-insensitive deduplication on render, writes back clean array',
+      'C123: Tags, Garnishes, Units, Base Spirits, Techniques all converted to .stg-row flex layout',
+      'Rename functions updated to find .stg-row elements',
+    ]
+  },
   {
     version: '1.8',
     title: 'Quick fixes',
@@ -3291,7 +3307,11 @@ function renderStgTags() {
   let html = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">
     Manage predefined tags. Custom additions appear highlighted. Use ✎ to rename, → to move to another category.
   </div>`;
-  for (const [group, tags] of Object.entries(TAG_GROUPS)) {
+  for (const [group, rawTags] of Object.entries(TAG_GROUPS)) {
+    // Deduplicate tags (case-insensitive) to fix double-up bug
+    const seen = new Set();
+    const tags = rawTags.filter(t => { const lc = t.toLowerCase(); if (seen.has(lc)) return false; seen.add(lc); return true; });
+    TAG_GROUPS[group] = tags; // write back deduped
     const defaultTags = DEFAULT_TAG_GROUPS[group] || [];
     const isCustomGroup = !DEFAULT_TAG_GROUPS[group];
     const isOther = group === 'Other';
@@ -3320,7 +3340,7 @@ function renderStgTags() {
           ${isCustomGroup && !isOther ? `<button onclick="removeTagCategory('${safeGroup}')" style="background:none;border:none;cursor:pointer;font-size:0.75rem;color:var(--ink-faint);padding:0 0 0 6px" title="Remove category">Remove</button>` : ''}
         </span>
       </div>
-      <div class="stg-group-body" id="stg-group-body-${esc(group)}">${tagPills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No tags yet — add one below.</span>'}</div>
+      <div class="stg-group-body" id="stg-group-body-${esc(group)}" style="display:flex;flex-direction:column;gap:0">${tagRows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No tags yet — add one below.</span>'}</div>
       <div style="padding:0 0.9rem 0.7rem">
         <div class="stg-add-row">
           <input type="text" placeholder="Add tag to ${esc(group)}…" id="new-tag-${esc(group)}"
@@ -3425,7 +3445,7 @@ function startRenameTag(group, tag) {
   // Find the pill and replace it with an inline edit input
   const body = document.getElementById(`stg-group-body-${group}`);
   if (!body) return;
-  const pills = body.querySelectorAll('.stg-tag');
+  const pills = body.querySelectorAll('.stg-row, .stg-tag');
   for (const pill of pills) {
     if (pill.textContent.trim().startsWith(tag)) {
       const editWrap = document.createElement('span');
@@ -3598,7 +3618,7 @@ function renderStgUnits() {
     </div>
     <div class="stg-group">
       <div class="stg-group-head"><span class="stg-group-name">Custom Units</span></div>
-      <div class="stg-group-body" id="stg-unit-body">${pills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No custom units yet — add one below.</span>'}</div>
+      <div class="stg-group-body" id="stg-unit-body" style="display:flex;flex-direction:column;gap:0">${unitRows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No custom units yet — add one below.</span>'}</div>
       <div style="padding:0 0.9rem 0.7rem">
         <div class="stg-add-row">
           <input type="text" placeholder="Add custom unit…" id="new-unit-Custom units"
@@ -3689,9 +3709,9 @@ function doRemoveUnit(unit, removeFromRecipes) {
 function startRenameUnit(unit) {
   const body = document.getElementById('stg-unit-body');
   if (!body) return;
-  const pills = body.querySelectorAll('.stg-tag');
+  const pills = body.querySelectorAll('.stg-row, .stg-tag');
   for (const pill of pills) {
-    if (pill.textContent.trim().startsWith(unit)) {
+    if (pill.querySelector('span')?.textContent.trim() === unit || pill.textContent.trim().startsWith(unit)) {
       const editWrap = document.createElement('span');
       editWrap.className = 'stg-tag-edit-wrap';
       const safeUnit = unit.replace(/'/g, "\\'");
@@ -3791,7 +3811,7 @@ function renderStgGarnishes() {
           ${isCustomGroup ? `<button onclick="removeGarnishCategory('${safeGroup}')" style="background:none;border:none;cursor:pointer;font-size:0.75rem;color:var(--ink-faint);padding:0 0 0 6px" title="Remove category">Remove</button>` : ''}
         </span>
       </div>
-      <div class="stg-group-body" id="stg-garnish-body-${esc(group)}">${pills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No garnishes yet \u2014 add one below.</span>'}</div>
+      <div class="stg-group-body" id="stg-garnish-body-${esc(group)}" style="display:flex;flex-direction:column;gap:0">${garnishRows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No garnishes yet \u2014 add one below.</span>'}</div>
       <div style="padding:0 0.9rem 0.7rem">
         <div class="stg-add-row">
           <input type="text" placeholder="Add garnish to ${esc(group)}\u2026" id="new-garnish-${esc(group)}"
@@ -3906,9 +3926,9 @@ function doRemoveGarnish(group, g, removeFromRecipes) {
 function startRenameGarnishItem(group, g) {
   const body = document.getElementById(`stg-garnish-body-${group}`);
   if (!body) return;
-  const pills = body.querySelectorAll('.stg-tag');
+  const pills = body.querySelectorAll('.stg-row, .stg-tag');
   for (const pill of pills) {
-    if (pill.textContent.trim().startsWith(g)) {
+    if (pill.querySelector('span')?.textContent.trim() === g || pill.textContent.trim().startsWith(g)) {
       const editWrap = document.createElement('span');
       editWrap.className = 'stg-tag-edit-wrap';
       const safeGrp = group.replace(/'/g, "\\'");
@@ -4166,7 +4186,7 @@ function renderStgBaseSpirits() {
   }).join('');
   pane.innerHTML = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">Manage base spirit options for the edit form dropdown. These represent broad cocktail classifications. For granular spirit tagging, use the Spirit category in Tags.</div>
     <div class="stg-group"><div class="stg-group-head"><span class="stg-group-name">Base Spirits</span></div>
-    <div class="stg-group-body" id="stg-spirit-body">${pills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No base spirits yet.</span>'}</div>
+    <div class="stg-group-body" id="stg-spirit-body" style="display:flex;flex-direction:column;gap:0">${spiritRows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No base spirits yet.</span>'}</div>
     <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add base spirit…" id="new-spirit-input" onkeydown="if(event.key==='Enter'){addBaseSpirit();event.preventDefault()}"><button onclick="addBaseSpirit()">Add</button></div></div></div>`;
 }
 function reorderBaseSpirit(s, dir) {
@@ -4212,7 +4232,7 @@ function renderStgTechniques() {
   }).join('');
   pane.innerHTML = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">Manage technique options for the edit form dropdown.</div>
     <div class="stg-group"><div class="stg-group-head"><span class="stg-group-name">Techniques</span></div>
-    <div class="stg-group-body" id="stg-technique-body">${pills || '<span style="font-size:0.78rem;color:var(--ink-faint)">No techniques yet.</span>'}</div>
+    <div class="stg-group-body" id="stg-technique-body" style="display:flex;flex-direction:column;gap:0">${techRows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No techniques yet.</span>'}</div>
     <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add technique…" id="new-technique-input" onkeydown="if(event.key==='Enter'){addTechnique();event.preventDefault()}"><button onclick="addTechnique()">Add</button></div></div></div>`;
 }
 function reorderTechnique(t, dir) {
