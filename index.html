@@ -1460,6 +1460,12 @@ header{
         <label>Notes</label>
         <textarea id="f-notes" rows="2" onfocus="preCaptureSnapshot()" onblur="captureFormSnapshot('Edit notes')"></textarea>
       </div>
+      <div class="fg">
+        <label>Variation of</label>
+        <select id="f-variation-of" onfocus="preCaptureSnapshot()" onchange="captureFormSnapshot('Change variation of')" style="flex:1">
+          <option value="">— none —</option>
+        </select>
+      </div>
 
     </div>
     <div class="form-foot" style="justify-content:space-between">
@@ -1964,10 +1970,26 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.5';
+const APP_VERSION = '1.6';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.6',
+    title: '"Variation of" recipe linking',
+    userNotes: [
+      'New "Variation of" field in the edit form \u2014 link a cocktail to its parent recipe',
+      'Recipe view shows "Variant of: [Recipe Name]" at the bottom with a tappable link',
+      'Parent recipes automatically show a "Variants" section with links to all child recipes',
+      'C117 Enter=new step deferred (reverted to normal Enter behaviour)',
+    ],
+    items: [
+      'C122: variationOf field \u2014 recipe picker dropdown in edit form, saved as recipe ID',
+      'C122: view \u2014 "Variant of" button at bottom links to parent recipe',
+      'C122: view \u2014 "Variants" section auto-populates from recipes referencing this one',
+      'C117: onkeydown removed from step-ta, handler deferred for future',
+    ]
+  },
   {
     version: '1.5',
     title: 'Method step Enter fix',
@@ -2467,6 +2489,7 @@ function _serializeForm() {
   return {
     name:     document.getElementById('f-name')?.value    || '',
     notes:    document.getElementById('f-notes')?.value   || '',
+    variationOf: document.getElementById('f-variation-of')?.value || '',
     utensils: getUtensils(),
     tags:     [...formTags],
     glass:    getGlassValue(),
@@ -5804,12 +5827,34 @@ function renderViewBody(r) {
     ? `<div class="view-sec"><div class="vsec-lbl">Garnish</div><p style="font-size:0.85rem;line-height:1.7;color:var(--ink-mid)">${esc(r.garnish)}</p></div>`
     : '';
 
+  // C122: Variation of / Variants
+  let variationHtml = '';
+  if (r.variationOf) {
+    const parent = recipes.find(x => x.id === r.variationOf);
+    if (parent) {
+      variationHtml += `<div class="view-sec" style="border-top:1px solid var(--border);padding-top:1rem;margin-top:0.5rem">
+        <div class="vsec-lbl" style="font-size:0.85rem">Variant of</div>
+        <button onclick="viewRecipe(${parent.id})" style="background:var(--paper);border:1px solid var(--border);border-radius:var(--radius);padding:6px 12px;font-family:'Playfair Display',serif;font-size:0.88rem;color:var(--ink);cursor:pointer;transition:border-color .12s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">${esc(parent.name)}</button>
+      </div>`;
+    }
+  }
+  // Find recipes that are variants OF this recipe
+  const variants = recipes.filter(x => x.variationOf === r.id);
+  if (variants.length) {
+    variationHtml += `<div class="view-sec" style="${r.variationOf ? '' : 'border-top:1px solid var(--border);padding-top:1rem;margin-top:0.5rem'}">
+      <div class="vsec-lbl" style="font-size:0.85rem">Variants</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${variants.map(v => `<button onclick="viewRecipe(${v.id})" style="background:var(--paper);border:1px solid var(--border);border-radius:var(--radius);padding:5px 10px;font-size:0.82rem;color:var(--ink);cursor:pointer;transition:border-color .12s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">${esc(v.name)}</button>`).join('')}
+      </div>
+    </div>`;
+  }
+
   vbody.innerHTML = `
     ${scaleBarHtml || stdDrinksRowHtml}
     ${groupBarHtml}
     ${r.status === 'draft' ? '<div class="draft-pill" style="margin-bottom:0.7rem">Draft</div>' : ''}
     ${metaItems.length ? `<div class="view-meta">${metaItems.join('')}</div>` : ''}
-    ${ingHtml}${garnishHtml}${methHtml}${equipmentHtml}${notesHtml}`;
+    ${ingHtml}${garnishHtml}${methHtml}${equipmentHtml}${notesHtml}${variationHtml}`;
 }
 
 function activateSubGroup(group, btn) {
@@ -6441,6 +6486,7 @@ async function saveRecipe() {
     ingredients, method,
     equipment: getUtensils().length ? getUtensils() : null,
     notes: document.getElementById('f-notes').value.trim(),
+    variationOf: parseInt(document.getElementById('f-variation-of').value) || null,
     updated: Date.now()
   };
 
@@ -7618,6 +7664,7 @@ function addMethodSection(data) {
   else addStep(null, stepsEl);
 }
 
+// C117: Deferred — Enter=new step (needs debugging on live DOM)
 function methodStepKeydown(e, textarea) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
@@ -7648,7 +7695,7 @@ function addStep(btn, stepsEl, stepData) {
   wrap.innerHTML = `
     <div class="step-row" style="align-items:flex-start">
       <div class="step-num-s">${num}</div>
-      <textarea class="step-ta" rows="1" placeholder="Step ${num}…" onkeydown="methodStepKeydown(event, this)">${esc(text)}</textarea>
+      <textarea class="step-ta" rows="1" placeholder="Step ${num}…">${esc(text)}</textarea>
       <button class="step-note-btn${stepNote?' on':''}" title="Add note to this step" onclick="toggleStepNote(this)" style="margin-top:4px;flex-shrink:0"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1" width="7" height="8.5" rx="1"/><line x1="3" y1="3.5" x2="7" y2="3.5"/><line x1="3" y1="5.5" x2="7" y2="5.5"/><line x1="3" y1="7.5" x2="5.5" y2="7.5"/></svg></button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleStepNoscale(this)" style="margin-top:4px;flex-shrink:0;${scalable?'':'display:none'}">⊘</button>
       <button class="del-btn" onclick="removeStep(this)" style="margin-top:4px">×</button>
