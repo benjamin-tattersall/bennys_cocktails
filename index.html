@@ -6063,6 +6063,12 @@ function openEdit(r) {
   document.getElementById('f-name').value   = r?.name   || '';
   document.getElementById('f-notes').value  = r?.notes  || '';
 
+  // Variation of — populate with all recipes except current
+  const varSel = document.getElementById('f-variation-of');
+  const otherRecipes = recipes.filter(x => x.id !== r?.id).sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  varSel.innerHTML = '<option value="">— none —</option>' +
+    otherRecipes.map(x => `<option value="${x.id}"${r?.variationOf === x.id ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
+
   formUtensils = [...(r?.equipment || r?.utensils || [])];
   renderUtensilPills();
 
