@@ -1964,10 +1964,20 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.5';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.5',
+    title: 'Method step Enter fix',
+    userNotes: [
+      'Fixed: pressing Enter in a method step now correctly creates a new step and focuses it',
+    ],
+    items: [
+      'C117 fix: corrected DOM selectors in methodStepKeydown (.step-wrap, .method-sec-block, .step-ta)',
+    ]
+  },
   {
     version: '1.4',
     title: 'Phase H fixes',
@@ -7611,17 +7621,14 @@ function addMethodSection(data) {
 function methodStepKeydown(e, textarea) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
-    // Find the step wrapper and the add-step button
-    const stepWrap = textarea.closest('.method-step');
-    const secCard = stepWrap?.closest('.sec-card');
-    if (!secCard) return;
-    const addBtn = secCard.querySelector('.add-step-btn');
-    const stepsEl = secCard.querySelector('.method-steps');
-    if (addBtn && stepsEl) {
-      addStep(addBtn, stepsEl);
-      // Focus the new step's textarea
+    const stepWrap = textarea.closest('.step-wrap');
+    const secBlock = stepWrap?.closest('.method-sec-block');
+    if (!secBlock) return;
+    const stepsEl = secBlock.querySelector('.method-steps');
+    if (stepsEl) {
+      addStep(null, stepsEl);
       const newStep = stepsEl.lastElementChild;
-      const newTextarea = newStep?.querySelector('.step-text');
+      const newTextarea = newStep?.querySelector('.step-ta');
       if (newTextarea) newTextarea.focus();
     }
   }
