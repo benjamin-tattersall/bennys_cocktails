@@ -250,7 +250,7 @@ header{
 }
 .view-tags{display:flex;flex-wrap:wrap;gap:5px;padding:0.8rem 0;margin:0}
 .vtag{font-size:0.7rem;background:var(--tag-bg);color:var(--tag-text);padding:2px 8px;border-radius:10px}
-.view-meta{display:flex;flex-wrap:wrap;gap:1rem;padding:0.8rem 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:0 0 1.2rem 0}
+.view-meta{display:flex;flex-wrap:wrap;gap:1rem;padding:0.8rem 0;border-bottom:1px solid var(--border);margin:0 0 1.2rem 0}
 .vmeta{font-size:0.8rem;color:var(--ink-muted);display:flex;align-items:center;gap:4px}
 .vmeta svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;flex-shrink:0}
 .vmeta strong{color:var(--ink);font-weight:500}
@@ -1964,10 +1964,26 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.3';
+const APP_VERSION = '1.4';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.4',
+    title: 'Phase H fixes',
+    userNotes: [
+      'Fixed: new ingredient rows now correctly default to ml',
+      'Fixed: Enter key in method steps now creates a new step (Shift+Enter for line break)',
+      'Fixed: double border line between scale bar and meta row removed',
+      'Fixed: tags in edit form now properly sort by settings group order',
+    ],
+    items: [
+      'C116 fix: unit default uses data?.unit ?? ml',
+      'C117 fix: onkeydown on step-ta textarea (was step-text)',
+      'C120 fix: removed border-top from .view-meta',
+      'C121 fix: sortTagsBySettings on correct formTags assignment',
+    ]
+  },
   {
     version: '1.3',
     title: 'Phase H — Quick fixes batch',
@@ -5995,7 +6011,7 @@ function openEdit(r) {
   formUtensils = [...(r?.equipment || r?.utensils || [])];
   renderUtensilPills();
 
-  formTags = [...(r?.tags||[])];
+  formTags = sortTagsBySettings([...(r?.tags||[])]);
   renderFormTags();
 
   // Glass dropdown — populate from managed list
@@ -7105,7 +7121,7 @@ function addIngRow(btn, rowsEl, data) {
   wrap.className = 'ing-row-wrap';
   const ns   = data?.noscale || false;
   const ov   = data?.scaleOverrides || {};
-  const unit = data?.unit || '';
+  const unit = data?.unit ?? (data ? '' : 'ml');
   const amt  = data?.amount;
   const subs = data?.substitutes || (data?.substitute ? [data.substitute] : []);
   const hasSub = subs.length > 0;
@@ -7625,7 +7641,7 @@ function addStep(btn, stepsEl, stepData) {
   wrap.innerHTML = `
     <div class="step-row" style="align-items:flex-start">
       <div class="step-num-s">${num}</div>
-      <textarea class="step-ta" rows="1" placeholder="Step ${num}…">${esc(text)}</textarea>
+      <textarea class="step-ta" rows="1" placeholder="Step ${num}…" onkeydown="methodStepKeydown(event, this)">${esc(text)}</textarea>
       <button class="step-note-btn${stepNote?' on':''}" title="Add note to this step" onclick="toggleStepNote(this)" style="margin-top:4px;flex-shrink:0"><svg viewBox="0 0 10 10" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="1.5" y="1" width="7" height="8.5" rx="1"/><line x1="3" y1="3.5" x2="7" y2="3.5"/><line x1="3" y1="5.5" x2="7" y2="5.5"/><line x1="3" y1="7.5" x2="5.5" y2="7.5"/></svg></button>
       <button class="noscale-toggle${ns?' on':''}" title="Flag scale overrides" onclick="toggleStepNoscale(this)" style="margin-top:4px;flex-shrink:0;${scalable?'':'display:none'}">⊘</button>
       <button class="del-btn" onclick="removeStep(this)" style="margin-top:4px">×</button>
