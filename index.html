@@ -1096,6 +1096,9 @@ header{
   font-size:0.9rem;line-height:1;padding:0;transition:color .1s;
 }
 .stg-tag button:hover{color:var(--danger)}
+.reorder-btn{background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:2px;font-size:0.65rem;line-height:1;transition:color .12s;opacity:.6}
+.reorder-btn:hover{color:var(--accent-text);opacity:1}
+.reorder-btn:disabled{opacity:.2;cursor:default}
 /* move tag button */
 .stg-tag .move-btn{font-size:0.78rem;opacity:.55;margin-right:1px;cursor:pointer;background:none;border:none;color:inherit;padding:0 1px}
 .stg-tag .move-btn:hover{opacity:1;color:var(--accent-text)}
@@ -1971,10 +1974,24 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.9';
+const APP_VERSION = '2.0';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '2.0',
+    title: 'Settings layout consistency',
+    userNotes: [
+      'All settings pages now have identical row styling',
+      'Reorder arrows now borderless, matching the rename and delete button style',
+      'Button order consistent across all pages: name, arrows, rename, delete',
+    ],
+    items: [
+      'Reorder btn CSS: removed border/background, opacity:.6 with hover',
+      'All rows: gap:8px, padding:5px 0',
+      'Glass button order aligned: arrows before rename',
+    ]
+  },
   {
     version: '1.9',
     title: 'Settings row layout & tag dedup',
@@ -3315,7 +3332,7 @@ function renderStgTags() {
     const defaultTags = DEFAULT_TAG_GROUPS[group] || [];
     const isCustomGroup = !DEFAULT_TAG_GROUPS[group];
     const isOther = group === 'Other';
-    const tagPills = tags.map((t, tIdx) => {
+    const tagRows = tags.map((t, tIdx) => {
       const isCustom = false;
       const safeT = t.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const safeG = group.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -3323,13 +3340,13 @@ function renderStgTags() {
         ? `<button class="move-btn" onclick="startMoveTag('${safeT}')" title="Move to another category">→</button>`
         : '';
       const arrows = reorderArrows(t, tIdx, tags.length, `reorderTag('${safeG}','${safeT}',-1)`, `reorderTag('${safeG}','${safeT}',1)`);
-      return `<span class="stg-tag${isCustom?' custom':''}">
-        ${esc(t)}
-        <button onclick="startRenameTag('${safeG}','${safeT}')" title="Rename tag" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button>
-        ${moveBtn}
-        <button onclick="removeTagFromGroup('${safeG}','${safeT}')" title="Remove tag">×</button>
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
+        <span style="flex:1;font-size:0.82rem;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t)}</span>
         ${arrows}
-      </span>`;
+        <button onclick="startRenameTag('${safeG}','${safeT}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">✎</button>
+        ${moveBtn}
+        <button onclick="removeTagFromGroup('${safeG}','${safeT}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">×</button>
+      </div>`;
     }).join('');
     const safeGroup = group.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     html += `<div class="stg-group">
@@ -3601,15 +3618,15 @@ function renderStgUnits() {
   const pane = document.getElementById('stg-pane-units');
   const customUnits = (UNIT_GROUPS['Custom units'] || []).filter(u => !RETIRED_UNITS.includes(u));
 
-  const pills = customUnits.map((u, uIdx) => {
+  const unitRows = customUnits.map((u, uIdx) => {
     const safeU = esc(u).replace(/'/g,"\\'");
     const arrows = reorderArrows(u, uIdx, customUnits.length, `reorderUnit('${safeU}',-1)`, `reorderUnit('${safeU}',1)`);
-    return `<span class="stg-tag">
-      ${esc(u)}
-      <button onclick="startRenameUnit('${safeU}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button>
-      <button onclick="removeUnit('${safeU}')" title="Remove">×</button>
-      ${arrows}
-    </span>`;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
+      <span style="flex:1;font-size:0.82rem;color:var(--ink)">${esc(u)}</span>
+      ${reorderArrows(u, uIdx, customUnits.length, "reorderUnit('"+safeU+"',-1)", "reorderUnit('"+safeU+"',1)")}
+      <button onclick="startRenameUnit('${safeU}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">✎</button>
+      <button onclick="removeUnit('${safeU}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">×</button>
+    </div>`;
   }).join('');
 
   pane.innerHTML = `
@@ -3792,15 +3809,16 @@ function renderStgGarnishes() {
   for (const [group, garnishes] of Object.entries(GARNISH_GROUPS)) {
     const isCustomGroup = !DEFAULT_GARNISH_GROUPS[group];
     const defaultItems = DEFAULT_GARNISH_GROUPS[group] || [];
-    const pills = garnishes.map(g => {
+    const garnishRows = garnishes.map((g, gIdx) => {
       const isCustom = !defaultItems.map(d=>d.toLowerCase()).includes(g.toLowerCase());
       const safeG = g.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const safeGrp = group.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      return `<span class="stg-tag${isCustom?' custom':''}">
-        ${esc(g)}
-        <button onclick="startRenameGarnishItem('${safeGrp}','${safeG}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">\u270e</button>
-        <button onclick="removeGarnishFromGroup('${safeGrp}','${safeG}')" title="Remove">\u00d7</button>
-      </span>`;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
+        <span style="flex:1;font-size:0.82rem;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(g)}</span>
+        ${reorderArrows(g, gIdx, garnishes.length, "reorderGarnish('"+safeGrp+"','"+safeG+"',-1)", "reorderGarnish('"+safeGrp+"','"+safeG+"',1)")}
+        <button onclick="startRenameGarnishItem('${safeGrp}','${safeG}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">✎</button>
+        <button onclick="removeGarnishFromGroup('${safeGrp}','${safeG}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">×</button>
+      </div>`;
     }).join('');
     const safeGroup = group.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     html += `<div class="stg-group">
@@ -3987,6 +4005,7 @@ function renderStgGlasses() {
       </button>
       <span style="flex:1;font-size:0.82rem;color:var(--ink)">${esc(g)}</span>
       <button onclick="startRenameGlass('${safeG}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">\u270e</button>
+      ${reorderArrows(g, activeGlasses.indexOf(g), activeGlasses.length, "reorderGlass('" + safeG + "',-1)", "reorderGlass('" + safeG + "',1)")}
       <button onclick="removeGlass('${safeG}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">\u00d7</button>
     </div>`;
   }).join('');
@@ -4179,15 +4198,16 @@ function renderStgBaseSpirits() {
   const pane = document.getElementById('stg-pane-spirits');
   if (!pane) return;
   const active = BASE_SPIRIT_OPTIONS.filter(s => !RETIRED_BASE_SPIRITS.includes(s));
-  const pills = active.map((s, sIdx) => {
+  const spiritRows = active.map((s, sIdx) => {
     const safeS = esc(s).replace(/'/g, "\\'");
     const arrows = reorderArrows(s, sIdx, active.length, `reorderBaseSpirit('${safeS}',-1)`, `reorderBaseSpirit('${safeS}',1)`);
-    return `<span class="stg-tag">${esc(s)}<button onclick="startRenameBaseSpirit('${safeS}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button><button onclick="removeBaseSpirit('${safeS}')" title="Remove">×</button>${arrows}</span>`;
-  }).join('');
-  pane.innerHTML = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">Manage base spirit options for the edit form dropdown. These represent broad cocktail classifications. For granular spirit tagging, use the Spirit category in Tags.</div>
-    <div class="stg-group"><div class="stg-group-head"><span class="stg-group-name">Base Spirits</span></div>
-    <div class="stg-group-body" id="stg-spirit-body" style="display:flex;flex-direction:column;gap:0">${spiritRows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No base spirits yet.</span>'}</div>
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
+      <span style="flex:1;font-size:0.82rem;color:var(--ink)">${esc(s)}</span>
+      ${reorderArrows(s, sIdx, active.length, "reorderBaseSpirit('"+safeS+"',-1)", "reorderBaseSpirit('"+safeS+"',1)")}
+      <button onclick="startRenameBaseSpirit('${safeS}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">✎</button>
+      <button onclick="removeBaseSpirit('${safeS}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">×</button>
     <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add base spirit…" id="new-spirit-input" onkeydown="if(event.key==='Enter'){addBaseSpirit();event.preventDefault()}"><button onclick="addBaseSpirit()">Add</button></div></div></div>`;
+    }).join('');
 }
 function reorderBaseSpirit(s, dir) {
   reorderInList(BASE_SPIRIT_OPTIONS, s, dir, renderStgBaseSpirits);
@@ -4225,15 +4245,16 @@ function confirmRenameBaseSpirit(oldS) {
 function renderStgTechniques() {
   const pane = document.getElementById('stg-pane-techniques'); if(!pane) return;
   const active = TECHNIQUE_OPTIONS.filter(t=>!RETIRED_TECHNIQUES.includes(t));
-  const pills = active.map((t, tIdx) => {
+  const techRows = active.map((t, tIdx) => {
     const safeT = esc(t).replace(/'/g, "\\'");
     const arrows = reorderArrows(t, tIdx, active.length, `reorderTechnique('${safeT}',-1)`, `reorderTechnique('${safeT}',1)`);
-    return `<span class="stg-tag">${esc(t)}<button onclick="startRenameTechnique('${safeT}')" title="Rename" style="font-size:0.8rem;opacity:.6;margin-right:1px">✎</button><button onclick="removeTechnique('${safeT}')" title="Remove">×</button>${arrows}</span>`;
-  }).join('');
-  pane.innerHTML = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">Manage technique options for the edit form dropdown.</div>
-    <div class="stg-group"><div class="stg-group-head"><span class="stg-group-name">Techniques</span></div>
-    <div class="stg-group-body" id="stg-technique-body" style="display:flex;flex-direction:column;gap:0">${techRows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No techniques yet.</span>'}</div>
+    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
+      <span style="flex:1;font-size:0.82rem;color:var(--ink)">${esc(t)}</span>
+      ${reorderArrows(t, tIdx, active.length, "reorderTechnique('"+safeT+"',-1)", "reorderTechnique('"+safeT+"',1)")}
+      <button onclick="startRenameTechnique('${safeT}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">✎</button>
+      <button onclick="removeTechnique('${safeT}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">×</button>
     <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add technique…" id="new-technique-input" onkeydown="if(event.key==='Enter'){addTechnique();event.preventDefault()}"><button onclick="addTechnique()">Add</button></div></div></div>`;
+    }).join('');
 }
 function reorderTechnique(t, dir) {
   reorderInList(TECHNIQUE_OPTIONS, t, dir, renderStgTechniques);
