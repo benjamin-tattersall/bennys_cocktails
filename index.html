@@ -368,6 +368,7 @@ header{
   padding:0.45rem 0.7rem;font-family:'Instrument Sans',sans-serif;
   font-size:0.86rem;color:var(--ink);background:var(--cream);
   outline:none;transition:border-color .15s;resize:vertical;
+  min-height:38px;box-sizing:border-box;
 }
 .fg input:focus,.fg textarea:focus,.fg select:focus{border-color:var(--accent)}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:0.8rem}
@@ -1282,9 +1283,7 @@ header{
     <div class="modal-head" style="flex-shrink:0">
       <div style="display:flex;align-items:center;gap:0.5rem;min-width:0;flex:1">
         <h2 id="vname" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Cocktail</h2>
-        <button id="publish-icon-btn" class="publish-icon-btn" onclick="togglePublish()" title="Toggle publish status">
-          <!-- icon populated by updatePublishBtn() -->
-        </button>
+
       </div>
       <button class="xbtn" onclick="editCurrent()" title="Edit cocktail" style="font-size:0.95rem;margin-right:8px">
         <svg viewBox="0 0 14 14" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5l2 2L5 11H3v-2L9.5 2.5z"/></svg>
@@ -1300,6 +1299,7 @@ header{
   <div class="modal" style="max-width:900px;max-height:100dvh;display:flex;flex-direction:column;border-radius:0;margin:0;width:100%">
     <div class="modal-head">
       <h2 id="form-title">Add cocktail</h2>
+      <span id="edit-status-badge" style="font-size:0.7rem;padding:2px 8px;border-radius:10px;flex-shrink:0"></span>
       <div class="form-undo-card">
         <button class="form-undo-btn" id="form-undo-btn" onclick="formUndo()" title="Undo (⌘Z)" disabled>
           <svg viewBox="0 0 16 16"><path d="M3 7 L7 3 L7 5.5 C11 5.5 13 7.5 13 11 C11.5 8.5 9.5 7.5 7 7.5 L7 10 Z"/></svg>
@@ -1537,119 +1537,118 @@ header{
 
       <div class="info-pane active" id="info-pane-start">
         <h3>Welcome to Benny's Cocktails</h3>
-        <p>This is a cocktail recipe book for personal use or bar staff. Cocktails are stored in a GitHub Gist — a free file hosting service — so they're backed up and accessible on any device.</p>
+        <p>A cocktail recipe book for personal use or bar staff. Recipes are stored in a GitHub Gist — a free file hosting service — so they're backed up and accessible on any device.</p>
 
         <h3>What you'll need</h3>
         <p>A free GitHub account and a personal access token with Gist permissions.</p>
 
         <h3>First-time setup</h3>
         <ol>
-          <li>Create a free account at <strong>github.com</strong> if you don't have one already.</li>
-          <li>Go to <strong>gist.github.com</strong> and click <strong>+</strong> to create a new Gist. Set the filename to <code>recipes.json</code> and the content to <code>[]</code>. Set it to <strong>Secret</strong>, then click <strong>Create secret gist</strong>.</li>
-          <li>Copy the long ID from the URL — it looks like: <code>a1b2c3d4e5f67890abcd</code>. That's your <strong>Gist ID</strong>.</li>
-          <li>Go to <strong>github.com/settings/tokens</strong>, click <strong>Generate new token → Classic</strong>. Give it a name, set no expiry, and tick only the <strong>gist</strong> checkbox. Click <strong>Generate token</strong> and copy it — you'll only see it once.</li>
+          <li>Create a free account at <strong>github.com</strong> if you don't have one.</li>
+          <li>Go to <strong>gist.github.com</strong> and create a new Gist. Set the filename to <code>recipes.json</code> and the content to <code>[]</code>. Set it to <strong>Secret</strong>, then click <strong>Create secret gist</strong>.</li>
+          <li>Copy the long ID from the URL — that's your <strong>Gist ID</strong>.</li>
+          <li>Go to <strong>github.com/settings/tokens</strong>, click <strong>Generate new token → Classic</strong>. Tick only the <strong>gist</strong> checkbox. Copy the token.</li>
           <li>In this app, tap the <strong>🔑 key icon</strong> in the header, paste your Gist ID and token, then tap <strong>Save &amp; connect</strong>.</li>
         </ol>
         <div class="info-tip">Your credentials are saved only on this device in the browser's local storage. They are never sent anywhere other than GitHub's servers.</div>
 
         <h3>Setting up on a new device</h3>
-        <p>Each device needs to be connected separately. Tap the <strong>🔑 key icon</strong> and enter the same Gist ID and token. Your cocktails will load straight away.</p>
-        <div class="info-tip">Keep your Gist ID and token in a password manager so you can reconnect on new devices easily.</div>
+        <p>Each device needs to be connected separately. Tap the <strong>🔑 key icon</strong> and enter the same Gist ID and token.</p>
       </div>
 
       <div class="info-pane" id="info-pane-cocktails">
         <h3>Adding a cocktail</h3>
-        <p>Tap <strong>+ Add cocktail</strong> in the header. Fill in the name, tags, glass, garnish, and prep time. You can add a source URL or a YouTube link — a YouTube link will appear as a playable video inside the cocktail.</p>
+        <p>Tap <strong>+ Add cocktail</strong> in the header. Fill in the name, tags, base spirit, technique, glass type, ice type, garnish, and standard drinks.</p>
         <h3>Ingredients and method sections</h3>
-        <p>Ingredients and method steps are added directly — no section wrapper by default. Use the <strong>+ Ingredient</strong> and <strong>+ Step</strong> buttons to build your list. If you want to group items, tap <strong>+ Section</strong> to create a named section. Sections must have a name. Unnamed items always appear at the top.</p>
+        <p>Use the <strong>+ Ingredient</strong> and <strong>+ Step</strong> buttons to build your recipe. New ingredient rows default to <strong>ml</strong> as the unit. If you want to group items (e.g. separate a syrup from the main cocktail), tap <strong>+ Section</strong> to create a named section.</p>
         <h3>Collapsing sections while editing</h3>
-        <p>Each ingredient or method section has a <strong>⌄ chevron</strong> in its header. Tap it to collapse the section into a compact dot-point summary — each ingredient shows its name, amount, unit, and any active toggles. Tap again to expand. Useful for keeping long cocktails manageable while editing.</p>
+        <p>Each ingredient or method section has a <strong>⌄ chevron</strong> in its header. Tap it to collapse into a compact summary showing each ingredient's name, amount, and unit. Useful for keeping long recipes manageable.</p>
+        <h3>Glass type and icons</h3>
+        <p>Choose a glass type from the dropdown or type a custom name. Each glass type has an icon — visible on recipe cards and in the recipe view. You can change which icon represents each glass type in <strong>Settings → Glasses</strong> by tapping the icon.</p>
+        <h3>Frozen glass</h3>
+        <p>Toggle the <strong>❄ snowflake</strong> next to the glass dropdown to mark the glass as frozen. Frozen glasses display with a blue tint.</p>
+        <h3>Garnish</h3>
+        <p>The garnish field is a multi-select pill input. Type to search from your managed garnish list (organised by category), or type a custom garnish and press Enter. Multiple garnishes can be added. Custom garnishes are automatically saved to your garnish library.</p>
+        <h3>Ice type</h3>
+        <p>Choose from common ice types (Regular, Crushed, Large Cube, Sphere, Block, Pebble, Shaved) or type a custom ice type.</p>
+        <h3>Standard drinks</h3>
+        <p>Enter the number of Australian standard drinks in the cocktail. This value scales with the recipe — at ½× it shows half, and at 2×+ it shows the total with a breakdown (e.g. "4.5 (3 × 1.5) std drinks").</p>
+        <h3>Recipe variations</h3>
+        <p>Use the <strong>Variation of</strong> dropdown at the bottom of the edit form to link a cocktail to its parent recipe. For example, set "Spicy Margarita" as a variation of "Margarita". The parent recipe automatically shows all its variants, and each variant shows a link back to the parent.</p>
         <h3>Drafts and publishing</h3>
-        <p>Every new recipe starts as a <strong>Draft</strong>, hidden from the main page until you're ready. When viewing a cocktail, tap the <strong>status icon</strong> next to the cocktail name — a green tick means published, an amber dashed circle means draft. You can also publish or unpublish from inside the <strong>Edit form</strong> using the Publish/Unpublish button in the footer. Toggle the <strong>Drafts</strong> switch in the toolbar to see your unpublished recipes.</p>
+        <p>Every new recipe starts as a <strong>Draft</strong>. The current status is shown as a badge in the edit form header. Use the <strong>Publish/Unpublish</strong> button in the edit form footer to change status. Toggle the <strong>Drafts</strong> switch in the toolbar to show or hide unpublished recipes.</p>
         <h3>Organising with tags</h3>
-        <p>Tags categorise your cocktails — things like "Bourbon", "Classic", or "Sour". Type any tag when editing a cocktail. Custom tags you create appear under <strong>Other</strong> in Settings → Tags, where you can move them into the appropriate category.</p>
-        <h3>Makes</h3>
-        <p>Set how many cocktails this cocktail makes. Use scaling (½× 2× 3×) to adjust quantities for more or fewer.</p>
-        <h3>Ticking off while cooking</h3>
-        <p>While reading a cocktail, tap any method step or ingredient to mark it as done — it fades and gets a strikethrough. Tap again to un-tick. The state resets when you close the cocktail.</p>
-        <h3>Editing and deleting a cocktail</h3>
-        <p>When viewing a cocktail, tap the <strong>✎ pencil icon</strong> in the header to open the edit form. From there, the <strong>🗑 bin icon</strong> in the footer moves the cocktail to the bin — accessible via the bin icon in the main header where you can restore or permanently delete it.</p>
+        <p>Tags categorise your cocktails — things like "Bourbon", "Classic", "Sour", or "Spicy". Tags are used for filtering and grouping on the main page. Manage tag categories and order in <strong>Settings → Tags</strong>.</p>
+        <h3>Ticking off while making</h3>
+        <p>While viewing a recipe, tap any method step or ingredient to mark it as done — it fades with a strikethrough. Tap again to un-tick. Resets when you close the recipe.</p>
+        <h3>Editing and deleting</h3>
+        <p>When viewing a recipe, tap the <strong>✎ pencil icon</strong> to open the edit form. The <strong>🗑 bin icon</strong> in the footer moves the recipe to the bin, where you can restore or permanently delete it.</p>
         <h3>Undoing changes</h3>
-        <p>While editing a cocktail, the <strong>↩ ↪ undo/redo buttons</strong> in the edit form header track your changes within that editing session — adding or removing ingredients, editing fields, toggling scaling flags, and more. Changes are not undoable once you've saved and closed the form.</p>
+        <p>The <strong>↩ ↪ undo/redo buttons</strong> in the edit form header track your changes within that editing session. Changes are not undoable once saved.</p>
       </div>
 
       <div class="info-pane" id="info-pane-scaling">
-        <h3>Scaling a cocktail up or down</h3>
-        <p>When viewing a cocktail, use the <strong>1× / ½× / 2× / 3×</strong> scale buttons — they scroll with the cocktail content — to change the serving size. Ingredient quantities update automatically, with units adjusting sensibly — for example, 3 teaspoons becomes 1 tablespoon.</p>
-        <h3>Ingredients that don't scale well</h3>
-        <p>Some ingredients — like salt, spices, or baking powder — don't simply double or halve. Tap the <strong>⊘ button</strong> next to any ingredient when editing to set a specific amount for each scale size individually. Leaving a scale size blank means proportional scaling is used for that size.</p>
+        <h3>Scaling a cocktail</h3>
+        <p>When viewing a recipe, use the <strong>½× / 1× / 2× / 3× / 4× / 5×</strong> scale buttons to adjust quantities. Ingredient amounts update proportionally, with units adjusting sensibly (e.g. 750ml becomes 0.75L).</p>
+        <h3>Ingredients that don't scale proportionally</h3>
+        <p>Some ingredients — like bitters, salt rims, or egg whites — may need specific amounts at different scales rather than simple multiplication. Tap the <strong>⊘ button</strong> next to any ingredient when editing to set exact amounts for each scale size. Leave a field blank to use proportional scaling for that size.</p>
         <h3>Method steps that change with scale</h3>
-        <p>The same ⊘ flag works for method steps — useful when cooking times or temperatures need different instructions at different batch sizes.</p>
-        <h3>Turning off scaling for a cocktail</h3>
-        <p>When editing, the <strong>Cocktail can be scaled</strong> toggle lets you disable scaling entirely for cocktails where it doesn't apply. The scale controls won't appear when viewing that cocktail.</p>
+        <p>The same ⊘ flag works for method steps — useful when instructions differ at larger batch sizes, such as adjusting shaking technique or splitting into multiple shaker tins. If a scale override field is left blank, the original step text is shown.</p>
+        <h3>Choosing which scales are available</h3>
+        <p>When editing, tick or untick the individual scale checkboxes (½×, 2×, 3×, 4×, 5×) to control which scale buttons appear in the recipe view. The 1× button is always shown.</p>
+        <h3>Turning off scaling entirely</h3>
+        <p>The <strong>Cocktail can be scaled</strong> toggle disables scaling entirely for recipes where it doesn't apply. Scale controls won't appear in the recipe view.</p>
       </div>
 
       <div class="info-pane" id="info-pane-substitutes">
         <h3>Adding substitutes</h3>
-        <p>Any ingredient can have one or more substitutes. When editing an ingredient, tap the <strong>⇄ button</strong> to open the substitutes panel. Each substitute has its own name, amount, unit, prep note, and an optional <strong>Reason</strong> field — use this to explain why the substitution might be made (e.g. "dairy-free alternative" or "if unavailable").</p>
+        <p>Any ingredient can have one or more substitutes. When editing an ingredient, tap the <strong>⇄ button</strong> to open the substitutes panel. Each substitute has its own name, amount, unit, and an optional <strong>Reason</strong> field (e.g. "low ABV version", "if unavailable").</p>
         <h3>Inherited fields</h3>
-        <p>When you add a substitute, its amount, unit, prep, and note fields default to the parent ingredient's values. The parent's values appear as placeholder text in each field. If you leave a field blank, the substitute will show the parent ingredient's value in the cocktail view — useful when only the name changes (e.g. swapping "brown onion" for "red onion" with the same prep and quantities). Fill in a field to override just that value.</p>
-        <h3>Choosing a substitute when viewing a cocktail</h3>
-        <p>Ingredients that have substitutes show a <strong>⇄ button</strong> in the cocktail view. Tapping it opens a small chooser listing the original ingredient and all available substitutes. If a substitute has a reason, it appears in smaller text beneath the name to help you decide. Selecting a substitute swaps that ingredient's name, quantity, and prep note in the table. Tap the button again and choose <strong>Original cocktail</strong> to revert.</p>
+        <p>A substitute's amount and unit default to the parent ingredient's values (shown as placeholder text). Leave a field blank to inherit the parent's value — useful when only the spirit changes but the quantity stays the same.</p>
+        <h3>Choosing a substitute when viewing</h3>
+        <p>Ingredients with substitutes show a <strong>⇄ button</strong> in the recipe view. Tapping it opens a chooser listing the original and all substitutes. Select one to swap that ingredient. Choose <strong>Original cocktail</strong> to revert.</p>
         <h3>Scaling substitutes</h3>
-        <p>Substitutes support the same scale overrides as regular ingredients. Use the <strong>⊘ button</strong> within the substitute panel to set specific amounts for ½×, 2×, or 3× scale if the substitute doesn't scale proportionally.</p>
-        <h3>Multiple substitutes</h3>
-        <p>An ingredient can have more than one substitute — for example, a cocktail calling for bourbon might offer both a rye whiskey substitute and a bourbon substitute. Only one substitute can be active at a time per ingredient.</p>
-        <h3>Substitute groups — cocktail modes</h3>
-        <p>When editing a substitute, you can assign it a <strong>Group</strong> using the dropdown (e.g. "Dairy Free", "Vegan"). When any substitutes have a group set, a <strong>Mode</strong> bar appears above the ingredients when viewing the recipe. Tapping a mode (e.g. "Dairy Free") activates all substitutes tagged to that group at once — swapping every matching ingredient simultaneously. Tap <strong>Original</strong> to revert.</p>
+        <p>Substitutes support the same scale overrides as regular ingredients. Use the <strong>⊘ button</strong> within the substitute panel to set specific amounts at different scales.</p>
+        <h3>Substitute groups</h3>
+        <p>Assign a <strong>Group</strong> to substitutes (e.g. "Low ABV Version", "Virgin/Mocktail", "Spicy Version"). When substitutes have groups, a <strong>Mode bar</strong> appears above the ingredients in the recipe view. Tapping a mode activates all substitutes in that group at once. Tap <strong>Original</strong> to revert all.</p>
       </div>
 
       <div class="info-pane" id="info-pane-filter">
-        <h3>Searching for a cocktail</h3>
-        <p>Use the search bar at the top to find cocktails by name or tag. On a phone, tap the magnifying glass icon to bring up the search field.</p>
-        <h3>Filtering your cocktails</h3>
-        <p>Tap <strong>Filter</strong> in the toolbar to narrow down which recipes are shown. You can select multiple options. Within the same category (e.g. "Breakfast" and "Dinner") the app shows recipes matching either. Across different categories (e.g. "Korean" and "Dinner") only recipes matching both are shown. Active filters appear as removable tags below the toolbar.</p>
-        <h3>Filtering by cook time or serves</h3>
-        <p>The filter panel includes cook time and serves ranges. Select one or more ranges to narrow results. Only ranges that match at least one of your cocktails are shown.</p>
-        <h3>Grouping cocktails</h3>
-        <p>Tap <strong>Group</strong> in the toolbar to organise your cocktails into labelled sections on the main page. A cocktail tagged with both "Bourbon" and "Classic" will appear under both headings.</p>
+        <h3>Searching</h3>
+        <p>Use the search bar to find cocktails by name or tag. On mobile, tap the magnifying glass icon to show the search field.</p>
+        <h3>Filtering</h3>
+        <p>Tap <strong>Filter</strong> in the toolbar. Select tags across categories — within a category, any match counts (OR). Across categories, all must match (AND). Filters include Base Spirit, Standard Drinks ranges, Technique, and Glass type. Unselectable options are dimmed when they would return no results.</p>
+        <h3>Grouping</h3>
+        <p>Tap <strong>Group</strong> to organise recipes into labelled sections. Group by any tag category, Base Spirit, Glass, Technique, or Standard Drinks. A recipe matching multiple tags in the same group appears under each heading.</p>
       </div>
 
       <div class="info-pane" id="info-pane-export">
         <h3>Downloading your cocktails</h3>
-        <p>Tap the <strong>↓ icon</strong> in the header to open the export panel. A checklist of all your cocktails appears — tick the ones you want to include, use the All or None buttons to select quickly, then choose one or more formats to download.</p>
+        <p>Tap the <strong>↓ icon</strong> in the header to open the export panel. Select recipes to include, then choose a format.</p>
         <h3>Available formats</h3>
-        <p><strong>Text file (.txt)</strong> — a plain, human-readable file listing every cocktail with ingredients, substitutes, and method steps. Easy to open anywhere, including your phone's Notes app.</p>
-        <p><strong>Markdown (.md)</strong> — the same content formatted with headings and bold text. Opens nicely in any markdown viewer, Notion, GitHub, or Obsidian.</p>
-        <p><strong>Spreadsheet (.csv)</strong> — one row per cocktail with columns for name, tags, glass, prep time, standard drinks, source, notes, ingredients, and method. Opens in Excel or Google Sheets.</p>
-        <p><strong>Interactive HTML (.html)</strong> — a single self-contained file for one cocktail. Includes scale buttons, substitute toggles, and note reveals. Ideal for sharing a cocktail with someone who doesn't use the app — just open in any browser.</p>
-        <p><strong>Full Gist backup (.json)</strong> — a complete snapshot of your Gist files (recipes, bin, and settings). Use this to migrate to a new Gist or restore everything from scratch using the same version of the app.</p>
-        <h3>Automatic backups in your Gist</h3>
-        <p>Every time you save a recipe, the app also writes <code>backup.txt</code> and <code>backup.csv</code> files directly to your Gist. These update automatically so you always have a recent, human-readable copy available — no manual download needed.</p>
-        <h3>Restoring from a Gist backup</h3>
-        <p>If you ever need to start fresh, create a new Gist and create three files: <code>recipes.json</code>, <code>bin.json</code>, and <code>settings.json</code>. Paste in the contents from the corresponding entries inside your downloaded <code>gist-backup.json</code> file. Then connect the app to the new Gist using the 🔑 key icon.</p>
+        <p><strong>Text file (.txt)</strong> — plain text listing every recipe with ingredients, substitutes, and method steps.</p>
+        <p><strong>Markdown (.md)</strong> — formatted with headings and bold text. Opens in any markdown viewer, Notion, or Obsidian.</p>
+        <p><strong>Spreadsheet (.csv)</strong> — one row per recipe. Opens in Excel or Google Sheets.</p>
+        <p><strong>Interactive HTML (.html)</strong> — a self-contained file for one recipe with scale buttons and substitute toggles. Share with anyone — just open in a browser.</p>
+        <p><strong>Full Gist backup (.json)</strong> — complete snapshot of your Gist files (recipes, bin, settings). Use to migrate or restore.</p>
+        <h3>Automatic backups</h3>
+        <p>Every save also writes <code>backup.txt</code> and <code>backup.csv</code> to your Gist automatically.</p>
       </div>
 
       <div class="info-pane" id="info-pane-mobile">
         <h3>Adding to your iPhone home screen</h3>
         <ol>
-          <li>Open the app in <strong>Safari</strong> (must be Safari, not Chrome or another browser).</li>
-          <li>Tap the <strong>Share button</strong> — the square with an arrow pointing up — at the bottom of the screen.</li>
-          <li>Scroll down and tap <strong>Add to Home Screen</strong>.</li>
-          <li>Give it a name and tap <strong>Add</strong>. The app will appear on your home screen and open full-screen.</li>
+          <li>Open the app in <strong>Safari</strong> (must be Safari).</li>
+          <li>Tap the <strong>Share button</strong> (square with arrow up) at the bottom.</li>
+          <li>Tap <strong>Add to Home Screen</strong>.</li>
+          <li>Name it and tap <strong>Add</strong>. Opens full-screen from your home screen.</li>
         </ol>
 
-        <h3>Connecting on a new iPhone</h3>
-        <ol>
-          <li>Open the app and tap the <strong>🔑 key icon</strong> in the header.</li>
-          <li>Enter your <strong>Gist ID</strong> and <strong>personal access token</strong> — the same values used during setup.</li>
-          <li>Tap <strong>Save &amp; connect</strong>. Your cocktails will load straight away.</li>
-        </ol>
-        <div class="info-tip">Every device needs to be connected separately. Credentials are not shared between devices automatically.</div>
+        <h3>Connecting on a new device</h3>
+        <p>Open the app, tap <strong>🔑</strong>, enter your Gist ID and token, and tap <strong>Save &amp; connect</strong>.</p>
 
         <h3>Using without internet</h3>
-        <p>If you lose your connection, the app continues working from the last loaded version of your cocktails. You can still browse, search, and edit — changes are saved locally and synced to GitHub automatically when you're back online. A banner at the top indicates when you're offline.</p>
-        <div class="info-tip">If recipes aren't loading on a new device, the most likely cause is missing credentials. Tap the 🔑 key icon and enter your Gist ID and token.</div>
+        <p>The app works offline from the last loaded data. You can browse, search, and edit. Changes sync automatically when you're back online. A banner indicates when you're offline.</p>
       </div>
 
     </div>
@@ -1970,10 +1969,26 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.6';
+const APP_VERSION = '1.7';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.7',
+    title: 'Polish pass — status badge, input alignment & info rewrite',
+    userNotes: [
+      'Draft/publish status badge moved from recipe view to the edit form header',
+      'Dropdown select inputs now match the height of text inputs across the edit form',
+      'Info tab completely rewritten for cocktail context — all cooking references removed',
+      'Info now covers: glass icons, frozen glass, garnish pills, ice types, standard drinks scaling, recipe variations, substitute groups, and all current filter/group features',
+    ],
+    items: [
+      'View: removed publish-icon-btn and draft pill from recipe view',
+      'Edit form: added edit-status-badge in header showing Draft/Published',
+      'CSS: min-height:38px on .fg inputs/selects for consistent height',
+      'Info modal: full rewrite across all 7 tabs for cocktail context',
+    ]
+  },
   {
     version: '1.6',
     title: '"Variation of" recipe linking',
@@ -5217,6 +5232,21 @@ function updatePublishBtn(r) {
       iconBtn.title = 'Draft';
     }
   }
+  // Update edit form status badge
+  const statusBadge2 = document.getElementById('edit-status-badge');
+  if (statusBadge2) {
+    if (r.status === 'published') {
+      statusBadge2.textContent = 'Published';
+      statusBadge2.style.background = '#d8efd8';
+      statusBadge2.style.color = '#3a6a3a';
+      statusBadge2.style.border = '1px solid #8ac08a';
+    } else {
+      statusBadge2.textContent = 'Draft';
+      statusBadge2.style.background = '#fdf3dc';
+      statusBadge2.style.color = '#7a5a10';
+      statusBadge2.style.border = '1px solid #e8c840';
+    }
+  }
   // Update the edit form publish button
   const editBtn = document.getElementById('edit-publish-btn');
   if (editBtn) {
@@ -5852,7 +5882,7 @@ function renderViewBody(r) {
   vbody.innerHTML = `
     ${scaleBarHtml || stdDrinksRowHtml}
     ${groupBarHtml}
-    ${r.status === 'draft' ? '<div class="draft-pill" style="margin-bottom:0.7rem">Draft</div>' : ''}
+
     ${metaItems.length ? `<div class="view-meta">${metaItems.join('')}</div>` : ''}
     ${ingHtml}${garnishHtml}${methHtml}${equipmentHtml}${notesHtml}${variationHtml}`;
 }
@@ -6060,6 +6090,20 @@ function openEdit(r) {
   formUndoStack = [];
   formRedoStack = [];
   document.getElementById('form-title').textContent = r ? 'Edit cocktail' : 'Add cocktail';
+  const statusBadge = document.getElementById('edit-status-badge');
+  if (statusBadge) {
+    if (!r || r.status === 'draft') {
+      statusBadge.textContent = 'Draft';
+      statusBadge.style.background = '#fdf3dc';
+      statusBadge.style.color = '#7a5a10';
+      statusBadge.style.border = '1px solid #e8c840';
+    } else {
+      statusBadge.textContent = 'Published';
+      statusBadge.style.background = '#d8efd8';
+      statusBadge.style.color = '#3a6a3a';
+      statusBadge.style.border = '1px solid #8ac08a';
+    }
+  }
   document.getElementById('f-name').value   = r?.name   || '';
   document.getElementById('f-notes').value  = r?.notes  || '';
 
