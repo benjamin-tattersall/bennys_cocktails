@@ -368,7 +368,9 @@ header{
   padding:0.45rem 0.7rem;font-family:'Instrument Sans',sans-serif;
   font-size:0.86rem;color:var(--ink);background:var(--cream);
   outline:none;transition:border-color .15s;resize:vertical;
-  min-height:38px;box-sizing:border-box;
+}
+#f-glass,#f-spirit,#f-technique,#f-ice,#f-variation-of{
+  height:38px;box-sizing:border-box;
 }
 .fg input:focus,.fg textarea:focus,.fg select:focus{border-color:var(--accent)}
 .f2{display:grid;grid-template-columns:1fr 1fr;gap:0.8rem}
@@ -1299,7 +1301,7 @@ header{
   <div class="modal" style="max-width:900px;max-height:100dvh;display:flex;flex-direction:column;border-radius:0;margin:0;width:100%">
     <div class="modal-head">
       <h2 id="form-title">Add cocktail</h2>
-      <span id="edit-status-badge" style="font-size:0.7rem;padding:2px 8px;border-radius:10px;flex-shrink:0"></span>
+      <span id="edit-status-badge" style="font-size:0.7rem;padding:2px 8px;border-radius:10px;flex-shrink:0;margin-left:8px"></span>
       <div class="form-undo-card">
         <button class="form-undo-btn" id="form-undo-btn" onclick="formUndo()" title="Undo (⌘Z)" disabled>
           <svg viewBox="0 0 16 16"><path d="M3 7 L7 3 L7 5.5 C11 5.5 13 7.5 13 11 C11.5 8.5 9.5 7.5 7 7.5 L7 10 Z"/></svg>
@@ -1969,10 +1971,22 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '1.7';
+const APP_VERSION = '1.8';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '1.8',
+    title: 'Quick fixes',
+    userNotes: [
+      'Fixed: spacing between edit form title and Draft/Published badge',
+      'Fixed: dropdown height fix now only targets standalone select fields (Glass, Base Spirit, Technique, Ice, Variation of) without affecting tag/garnish pill inputs',
+    ],
+    items: [
+      'Status badge margin-left:8px',
+      'Reverted global min-height on .fg inputs, added height:38px only to #f-glass, #f-spirit, #f-technique, #f-ice, #f-variation-of',
+    ]
+  },
   {
     version: '1.7',
     title: 'Polish pass — status badge, input alignment & info rewrite',
