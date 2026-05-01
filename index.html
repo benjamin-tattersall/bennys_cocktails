@@ -1467,7 +1467,7 @@ header{
       </div>
       <div class="fg">
         <label>Variation of</label>
-        <select id="f-variation-of" onfocus="preCaptureSnapshot()" onchange="captureFormSnapshot('Change variation of')" style="flex:1">
+        <select id="f-variation-of" onfocus="preCaptureSnapshot()" onchange="captureFormSnapshot('Change variation of')" style="flex:1;height:38px">
           <option value="">— none —</option>
         </select>
       </div>
@@ -3423,7 +3423,7 @@ function renderStgTags() {
       const safeT = t.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const safeG = group.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const moveBtn = isOther
-        ? `<button class="move-btn" onclick="startMoveTag('${safeT}')" title="Move to another category">→</button>`
+        ? `<button onclick="startMoveTag('${safeT}')" title="Move to category" style="background:none;border:none;cursor:pointer;font-size:1.1rem;opacity:.6;color:var(--ink-muted);padding:3px">→</button>`
         : '';
       const arrows = reorderArrows(t, tIdx, tags.length, `reorderTag('${safeG}','${safeT}',-1)`, `reorderTag('${safeG}','${safeT}',1)`);
       return `<div class="stg-item" data-name="${esc(t)}" style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
@@ -4487,7 +4487,8 @@ function showConfirm(title, msg, actions) {
     const sel = document.createElement('select');
     sel.id = 'replace-tag-select';
     sel.className = 'replace-select';
-    sel.innerHTML = `<option value="">Choose replacement tag…</option>${replaceAction.selectOpts}`;
+    const selectLabel = replaceAction.selectLabel || 'Choose replacement tag…';
+    sel.innerHTML = `<option value="">${selectLabel}</option>${replaceAction.selectOpts}`;
     document.getElementById('confirm-msg').after(sel);
   }
   const btns = document.querySelector('.confirm-btns');
