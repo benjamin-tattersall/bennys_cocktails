@@ -348,7 +348,7 @@ header{
 .ing-note-toggle{background:none;border:none;color:var(--ink-faint);font-size:0.72rem;cursor:pointer;padding:1px 0 4px;font-family:'Instrument Sans',sans-serif;transition:color .12s}
 .ing-note-toggle:hover{color:var(--accent-text)}
 .ing-note-toggle.hide{display:none}
-.vstep-num{min-width:17px;height:17px;border-radius:50%;background:var(--accent);color:#fff;font-size:0.6rem;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px}
+.vstep-num{min-width:17px;height:17px;border-radius:50%;background:var(--accent-light);color:var(--accent-text);font-size:0.6rem;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:3px}
 .vstep-noscale-note{font-size:0.73rem;color:var(--warning);font-style:italic;margin-top:3px;display:none}
 .vbody[data-scaled="1"] .vstep-noscale-note{display:block}
 .view-foot{display:flex;gap:0.55rem;padding:0.9rem 1.3rem;border-top:1px solid var(--border);justify-content:flex-end}
@@ -1115,12 +1115,9 @@ header{
 /* replace tag select in confirm */
 .replace-select{
   width:100%;border:1px solid var(--border);border-radius:var(--radius);
-  padding:0.5rem 0.6rem;font-family:'Instrument Sans',sans-serif;font-size:0.84rem;
+  padding:0.4rem 0.6rem;font-family:'Instrument Sans',sans-serif;font-size:0.84rem;
   color:var(--ink);background:var(--cream);outline:none;margin-top:0.5rem;margin-bottom:0.7rem;
-  transition:border-color .15s;min-height:38px;box-sizing:border-box;
-  -webkit-appearance:none;appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5l3 3 3-3' fill='none' stroke='%237a6e65' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 8px center;background-size:12px;padding-right:28px;
+  transition:border-color .15s;
 }
 .replace-select:focus{border-color:var(--accent)}
 /* add tag inline input */
@@ -2022,26 +2019,10 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '2.6';
+const APP_VERSION = '2.5';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
-  {
-    version: '2.6',
-    title: 'Bug fixes',
-    userNotes: [
-      'Fixed: section name modal now correctly adds ingredient/method sections',
-      'Fixed: method step numbers now show white text on solid blue circles for better contrast',
-      'Fixed: move tag dropdown now has consistent height on mobile',
-      'Fixed: tag category deletion with safer null checks',
-    ],
-    items: [
-      'Section modal: save _sectionNameType before closeSectionNameModal wipes it',
-      'vstep-num: background:var(--accent), color:#fff',
-      'replace-select: min-height:38px, -webkit-appearance:none, custom chevron',
-      'removeTagCategory: null-safe CUSTOM_TAG_GROUPS check, fresh tag copy',
-    ]
-  },
   {
     version: '2.5',
     title: 'Deep blue accent, section modals & polish',
@@ -3542,15 +3523,14 @@ function removeTagCategory(group) {
   showConfirm(`Remove "${group}"?`, msg, [
     { label: 'Remove category', danger: true, fn: () => {
       // Remove tags from recipes
-      const tagsToRemove = [...(TAG_GROUPS[group] || [])];
-      tagsToRemove.forEach(tag => {
+      tagsInGroup.forEach(tag => {
         recipes.forEach(r => {
           if (r.tags) r.tags = r.tags.filter(t => t.toLowerCase() !== tag.toLowerCase());
         });
       });
-      if (TAG_GROUPS[group]) delete TAG_GROUPS[group];
-      if (CUSTOM_TAG_GROUPS && CUSTOM_TAG_GROUPS[group]) delete CUSTOM_TAG_GROUPS[group];
-      if (tagsToRemove.length > 0) saveToGist(`Removed tag category "${group}"`);
+      delete TAG_GROUPS[group];
+      delete CUSTOM_TAG_GROUPS[group];
+      if (affectedRecipes.length > 0) saveToGist(`Removed tag category "${group}"`);
       saveSettings();
       renderStgTags();
       render();
@@ -7932,15 +7912,15 @@ function confirmSectionName() {
   const input = document.getElementById('section-name-input');
   const name = input.value.trim();
   if (!name) { toast('Please enter a section name'); return; }
-  const type = _sectionNameType; // save before close wipes it
   closeSectionNameModal();
-  if (type === 'ingredient') {
+  if (_sectionNameType === 'ingredient') {
     captureFormSnapshot('Add ingredient section');
     addIngSection({ title: name, items: [] });
   } else {
     captureFormSnapshot('Add method section');
     addMethodSection({ title: name, steps: [] });
   }
+  _sectionNameType = null;
 }
 
 // C117: Deferred — Enter=new step (needs debugging on live DOM)
