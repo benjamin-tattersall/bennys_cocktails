@@ -1096,7 +1096,7 @@ header{
   font-size:0.9rem;line-height:1;padding:0;transition:color .1s;
 }
 .stg-tag button:hover{color:var(--danger)}
-.reorder-btn{background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:2px;font-size:0.65rem;line-height:1;transition:color .12s;opacity:.6}
+.reorder-btn{background:none;border:none;cursor:pointer;color:var(--ink-faint);padding:3px;font-size:0.9rem;line-height:1;transition:color .12s;opacity:.6}
 .reorder-btn:hover{color:var(--accent-text);opacity:1}
 .reorder-btn:disabled{opacity:.2;cursor:default}
 /* move tag button */
@@ -1896,10 +1896,11 @@ header{
 const DEFAULT_TAG_GROUPS = {
   'Spirit':     ['Vodka','Gin','Dry Gin','Sloe Gin','White Rum','Gold Rum','Dark Rum','Spiced Rum','Tequila','Blanco Tequila','Reposado Tequila','A\u00f1ejo Tequila','Joven Tequila','Mezcal','Joven Mezcal','Reposado Mezcal','A\u00f1ejo Mezcal','Pechuga Mezcal','Whiskey','Bourbon','Rye','Scotch','Irish Whiskey','Japanese Whiskey','Brandy','Sherry','Cognac','Absinthe','Pisco','Amaretto','Coffee Liqueur','Maraschino Liqueur','Campari','Aperol','Elderflower Liqueur','Triple Sec','Dry Vermouth','Sweet Vermouth','Cacha\u00e7a','Green Chartreuse','Yellow Chartreuse','Irish Cream','B\u00e9n\u00e9dictine','Cr\u00e8me de Cacao','Cr\u00e8me de Menthe','Cr\u00e8me de Cassis','Schnapps','Peach Schnapps','Melon Liqueur','Hazelnut Liqueur','Limoncello','Drambuie','Chambord','Montenegro','Fernet-Branca','Prosecco','Champagne'],
   'Style':      ['Tiki','Sour','Highball','Spritz','Fizz','Flip','Julep','Martini','Mull','Smash','Punch','Daisy','Shot','Hot','Frozen'],
-  'Origin':     ['Classic','Modern','Twist On Classic','Original'],
-  'Flavour':    ['Sweet','Dry','Bitter','Smoky','Citrus','Herbal','Spiced','Tropical','Floral','Creamy','Spicy','Coffee','Chocolate','Watermelon','Pineapple'],
+  'Origin':     ['Classic','Modern','Twist On Classic','Original','Underground Classic'],
+  'Flavour':    ['Sweet','Dry','Bitter','Smoky','Citrus','Herbal','Spiced','Tropical','Floral','Creamy','Spicy','Coffee','Chocolate','Watermelon','Pineapple','Honey','Mint','Cucumber','Ginger','Orange','White Chocolate'],
   'Strength':   ['Strong','Low Alcohol','Non-Alcoholic'],
-  'Dietary':    ['Vegan','Dairy Free','Gluten Free','Low Sugar','Contains Egg','Contains Dairy','Contains Peanuts']
+  'Dietary':    ['Vegan','Dairy Free','Gluten Free','Low Sugar','Contains Egg','Contains Dairy','Contains Peanuts'],
+  'Technique':  ['Fat Wash']
 };
 const DEFAULT_UNIT_GROUPS = {
   'Volume':       ['ml','oz','tsp','tbsp','cup','L'],
@@ -1910,40 +1911,65 @@ const DEFAULT_UNIT_GROUPS = {
 const DEFAULT_GLASS_OPTIONS = [
   'Rocks','Double Rocks','Highball','Collins','Coupe','Martini',
   'Nick & Nora','Wine','Flute','Hurricane','Tiki','Copper Mug',
-  'Shot','Snifter','Glencairn','Julep Cup','Punch Cup','Other'
+  'Shot','Snifter','Glencairn','Julep Cup','Punch Cup',
+  'Tumbler','Tall','Zombie','Pilsner','Tulip','Margarita','Saucer',
+  'Goblet','Glass Mug','Irish Coffee','Toddy','Absinthe','Grappa',
+  'Cordial','Fizz','Poco Grande','Other'
 ];
 let GLASS_OPTIONS = [...DEFAULT_GLASS_OPTIONS];
 let RETIRED_GLASSES = [];
 
-const DEFAULT_BASE_SPIRITS = ['Gin','Mezcal','Rum','Tequila','Vodka','Whiskey','Bourbon','Rye','Scotch','Brandy','Sherry','Cognac','Port','Absinthe','Pisco','Amaretto','Cacha\u00e7a','Coffee Liqueur','Maraschino Liqueur','Campari','Aperol','Vermouth','Liqueur'];
+const DEFAULT_BASE_SPIRITS = ['Gin','Mezcal','Rum','Tequila','Vodka','Whiskey','Bourbon','Rye','Scotch','Brandy','Sherry','Cognac','Port','Absinthe','Pisco','Amaretto','Cacha\u00e7a','Coffee Liqueur','Maraschino Liqueur','Campari','Aperol','Vermouth','Sweet Vermouth','Bitters','Liqueur'];
 let BASE_SPIRIT_OPTIONS = [...DEFAULT_BASE_SPIRITS];
 let RETIRED_BASE_SPIRITS = [];
 
-const DEFAULT_TECHNIQUE_OPTIONS = ['Shaken','Stirred','Built','Blended','Layered','Muddled','Thrown','Swizzled'];
+const DEFAULT_TECHNIQUE_OPTIONS = ['Shaken','Stirred','Built','Blended','Layered','Muddled','Thrown','Swizzled','Shaken \u0026 Topped','Fat Wash'];
 let TECHNIQUE_OPTIONS = [...DEFAULT_TECHNIQUE_OPTIONS];
 let RETIRED_TECHNIQUES = [];
 
 const ICE_OPTIONS = ['Regular','Crushed','Large Cube','Sphere','Block','Pebble','Shaved'];
 // ── GLASS ICONS ──────────────────────────────────────────────────────────
 const GLASS_ICONS = {
-  'Rocks':        '<path d="M3.5 2h7l-.8 8.5a1 1 0 01-1 .9H5.3a1 1 0 01-1-.9L3.5 2z"/>',
-  'Double Rocks': '<path d="M3 2h8l-.9 9a1 1 0 01-1 .9H4.9a1 1 0 01-1-.9L3 2z"/>',
-  'Highball':     '<path d="M4 1h6l-.5 10.5a1 1 0 01-1 .9H5.5a1 1 0 01-1-.9L4 1z"/>',
-  'Collins':      '<path d="M4.2.5h5.6l-.5 11.5a1 1 0 01-1 .9H5.7a1 1 0 01-1-.9L4.2.5z"/>',
-  'Coupe':        '<path d="M3 1.5c0 0 .5 4.5 4 4.5s4-4.5 4-4.5"/><line x1="7" y1="6" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
-  'Martini':      '<path d="M2.5 1.5h9L7 6z"/><line x1="7" y1="6" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
-  'Nick & Nora':  '<path d="M3.5 1.5c0 0 .3 4 3.5 4s3.5-4 3.5-4"/><line x1="7" y1="5.5" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
-  'Wine':         '<ellipse cx="7" cy="4" rx="3.5" ry="3"/><line x1="7" y1="7" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
-  'Flute':        '<path d="M5.5 1h3l-.3 5.5a1 1 0 01-1 .9h-.4a1 1 0 01-1-.9L5.5 1z"/><line x1="7" y1="7.4" x2="7" y2="11"/><line x1="5.5" y1="11" x2="8.5" y2="11"/>',
-  'Hurricane':    '<path d="M4.5 1h5c0 0 .8 2.5 0 4.5S5.5 8 5.5 8c-.8 1-.5 2.5-.5 3.5"/><path d="M5 11.5h4"/><line x1="7" y1="8" x2="7" y2="11.5"/>',
-  'Tiki':         '<path d="M4 1.5h6l-.3 7a2 2 0 01-2 1.8H6.3a2 2 0 01-2-1.8L4 1.5z"/><circle cx="6" cy="4.5" r=".6"/><circle cx="8" cy="4.5" r=".6"/><path d="M5.5 6.5c.5.5 1.5.8 3 0"/>',
-  'Copper Mug':   '<path d="M4 2h5.5l-.3 8a1 1 0 01-1 .9H5.3a1 1 0 01-1-.9L4 2z"/><path d="M9.5 3.5c1.5 0 2 1 2 2s-.5 2-2 2"/>',
-  'Shot':         '<path d="M5 2h4l-.3 5.5a1 1 0 01-1 .9H6.3a1 1 0 01-1-.9L5 2z"/>',
-  'Snifter':      '<path d="M3.5 2c0 0 0 4 3.5 5s3.5-5 3.5-5"/><line x1="7" y1="7" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
-  'Glencairn':    '<path d="M4.5 2h5c0 0 .5 2-.5 4s-2 2-2 3"/><line x1="7" y1="9" x2="7" y2="11"/><line x1="5.5" y1="11" x2="8.5" y2="11"/>',
-  'Julep Cup':    '<path d="M3.5 3h7l-.5 7.5a1 1 0 01-1 .9H5a1 1 0 01-1-.9L3.5 3z"/><line x1="3.2" y1="3" x2="10.8" y2="3" stroke-width="1.8"/>',
-  'Punch Cup':    '<path d="M4 3h6l-.4 5.5a1 1 0 01-1 .9H5.4a1 1 0 01-1-.9L4 3z"/><path d="M10 4.5c1 0 1.5.7 1.5 1.3s-.5 1.2-1.5 1.2"/>',
-  'Other':        '<path d="M4 2h6l-.6 8a1 1 0 01-1 .9H5.6a1 1 0 01-1-.9L4 2z"/>',
+  // ── Short glasses ──
+  'Rocks':          '<path d="M3.5 2h7l-.8 8.5a1 1 0 01-1 .9H5.3a1 1 0 01-1-.9L3.5 2z"/>',
+  'Double Rocks':   '<path d="M3 2h8l-.9 9a1 1 0 01-1 .9H4.9a1 1 0 01-1-.9L3 2z"/>',
+  'Shot':           '<path d="M5 2h4l-.3 5.5a1 1 0 01-1 .9H6.3a1 1 0 01-1-.9L5 2z"/>',
+  'Tumbler':        '<path d="M3.5 1.5h7l-.6 9.5a1 1 0 01-1 .9H5.1a1 1 0 01-1-.9L3.5 1.5z"/>',
+  // ── Tall glasses ──
+  'Highball':       '<path d="M4 1h6l-.5 10.5a1 1 0 01-1 .9H5.5a1 1 0 01-1-.9L4 1z"/>',
+  'Collins':        '<path d="M4.2.5h5.6l-.5 11.5a1 1 0 01-1 .9H5.7a1 1 0 01-1-.9L4.2.5z"/>',
+  'Tall':           '<path d="M4.5.5h5l-.4 11a1 1 0 01-1 .9H5.9a1 1 0 01-1-.9L4.5.5z"/>',
+  'Zombie':         '<path d="M4.3.5h5.4l-.5 11.5a1 1 0 01-1 .9H5.8a1 1 0 01-1-.9L4.3.5z"/>',
+  'Pilsner':        '<path d="M5 .5h4l.5 5-1 3-.3 3.2a1 1 0 01-1 .8H6.8a1 1 0 01-1-.8L5.5 8.5l-1-3L5 .5z"/>',
+  // ── Stemmed glasses ──
+  'Coupe':          '<path d="M3 1.5c0 0 .5 4.5 4 4.5s4-4.5 4-4.5"/><line x1="7" y1="6" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  'Martini':        '<path d="M2.5 1.5h9L7 6z"/><line x1="7" y1="6" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  'Nick & Nora':    '<path d="M3.5 1.5c0 0 .3 4 3.5 4s3.5-4 3.5-4"/><line x1="7" y1="5.5" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  'Wine':           '<ellipse cx="7" cy="4" rx="3.5" ry="3"/><line x1="7" y1="7" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  'Flute':          '<path d="M5.5 1h3l-.3 5.5a1 1 0 01-1 .9h-.4a1 1 0 01-1-.9L5.5 1z"/><line x1="7" y1="7.4" x2="7" y2="11"/><line x1="5.5" y1="11" x2="8.5" y2="11"/>',
+  'Snifter':        '<path d="M3.5 2c0 0 0 4 3.5 5s3.5-5 3.5-5"/><line x1="7" y1="7" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  'Tulip':          '<path d="M4 1c0 0-.3 3 .5 4.5S7 7 7 7s2-.5 2.5-1.5S10 1 10 1"/><line x1="7" y1="7" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  'Glencairn':      '<path d="M4.5 2h5c0 0 .5 2-.5 4s-2 2-2 3"/><line x1="7" y1="9" x2="7" y2="11"/><line x1="5.5" y1="11" x2="8.5" y2="11"/>',
+  'Margarita':      '<path d="M2 1.5h10L8.5 4c0 0-.5 1.5-1.5 1.5S5.5 4 5.5 4L2 1.5z"/><line x1="7" y1="5.5" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  'Saucer':         '<path d="M2.5 2.5c0 0 1 3 4.5 3s4.5-3 4.5-3"/><line x1="7" y1="5.5" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  'Goblet':         '<ellipse cx="7" cy="3.5" rx="3.8" ry="3.2"/><line x1="7" y1="6.7" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  // ── Mugs & handled ──
+  'Copper Mug':     '<path d="M4 2h5.5l-.3 8a1 1 0 01-1 .9H5.3a1 1 0 01-1-.9L4 2z"/><path d="M9.5 3.5c1.5 0 2 1 2 2s-.5 2-2 2"/>',
+  'Glass Mug':      '<path d="M3.5 1.5h6l-.3 9a1 1 0 01-1 .9H4.8a1 1 0 01-1-.9L3.5 1.5z"/><path d="M9.5 3c1.2 0 1.8.8 1.8 1.8s-.6 1.8-1.8 1.8"/>',
+  'Punch Cup':      '<path d="M4 3h6l-.4 5.5a1 1 0 01-1 .9H5.4a1 1 0 01-1-.9L4 3z"/><path d="M10 4.5c1 0 1.5.7 1.5 1.3s-.5 1.2-1.5 1.2"/>',
+  'Irish Coffee':   '<path d="M4 2h5.5l-.2 8.5a1 1 0 01-1 .9H5.2a1 1 0 01-1-.9L4 2z"/><path d="M9.5 3.5c1.3 0 1.8.9 1.8 1.7s-.5 1.7-1.8 1.7"/><line x1="4" y1="2" x2="9.5" y2="2" stroke-width="1.5"/>',
+  'Toddy':          '<path d="M4 2h5.5l-.3 8.5a1 1 0 01-1 .9H5.3a1 1 0 01-1-.9L4 2z"/><path d="M9.5 4c1 0 1.5.8 1.5 1.5s-.5 1.5-1.5 1.5"/>',
+  // ── Tiki & specialty ──
+  'Tiki':           '<path d="M4 1.5h6l-.3 7a2 2 0 01-2 1.8H6.3a2 2 0 01-2-1.8L4 1.5z"/><circle cx="6" cy="4.5" r=".6"/><circle cx="8" cy="4.5" r=".6"/><path d="M5.5 6.5c.5.5 1.5.8 3 0"/>',
+  'Hurricane':      '<path d="M4.5 1h5c0 0 .8 2.5 0 4.5S5.5 8 5.5 8c-.8 1-.5 2.5-.5 3.5"/><path d="M5 11.5h4"/><line x1="7" y1="8" x2="7" y2="11.5"/>',
+  'Julep Cup':      '<path d="M3.5 3h7l-.5 7.5a1 1 0 01-1 .9H5a1 1 0 01-1-.9L3.5 3z"/><line x1="3.2" y1="3" x2="10.8" y2="3" stroke-width="1.8"/>',
+  'Absinthe':       '<path d="M5 .5h4l-.2 4.5c0 0-.3 1.5-1.8 1.5S5.2 5 5.2 5L5 .5z"/><line x1="7" y1="6.5" x2="7" y2="10.5"/><line x1="5" y1="10.5" x2="9" y2="10.5"/>',
+  'Grappa':         '<path d="M5.5 1h3c0 0 .3 2-.5 3.5S7 6 7 6"/><line x1="7" y1="6" x2="7" y2="10.5"/><line x1="5.5" y1="10.5" x2="8.5" y2="10.5"/>',
+  'Cordial':        '<path d="M5.5 3h3l-.2 4a1 1 0 01-.8.7h-.8a1 1 0 01-.8-.7L5.5 3z"/><line x1="7" y1="7.7" x2="7" y2="10.5"/><line x1="5.5" y1="10.5" x2="8.5" y2="10.5"/>',
+  'Fizz':           '<path d="M4.5 1h5l-.4 10a1 1 0 01-1 .9H5.9a1 1 0 01-1-.9L4.5 1z"/>',
+  'Poco Grande':    '<path d="M4 1c0 0 .5 3-.5 5s1.5 3 3.5 3 4-1 3.5-3S10 1 10 1"/><line x1="7" y1="9" x2="7" y2="11"/><line x1="5.5" y1="11" x2="8.5" y2="11"/>',
+  // ── Fallback ──
+  'Other':          '<path d="M4 2h6l-.6 8a1 1 0 01-1 .9H5.6a1 1 0 01-1-.9L4 2z"/>',
 };
 const GLASS_ICON_FALLBACK = GLASS_ICONS['Other'];
 let GLASS_ICON_MAP = {}; // user overrides: glass name → icon key. Empty = use name match or fallback.
@@ -1974,10 +2000,43 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '2.0';
+const APP_VERSION = '2.2';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '2.2',
+    title: 'Glass icons expansion, icon sizes & Gist sync',
+    userNotes: [
+      'Glass icon library expanded from 18 to 33 types — includes Tumbler, Tall, Zombie, Pilsner, Tulip, Margarita, Saucer, Goblet, Glass Mug, Irish Coffee, Toddy, Absinthe, Grappa, Cordial, Fizz, Poco Grande',
+      'Settings icons (arrows, rename, delete) enlarged for better tap targets',
+      'Defaults synced with your recipe data — new base spirits (Bitters, Sweet Vermouth), techniques (Shaken & Topped, Fat Wash), garnishes, flavour tags, and more',
+    ],
+    items: [
+      'C124: 15 new glass SVG icons (33 total)',
+      'C125: reorder-btn font 0.65→0.9rem, rename 0.8→1.1rem, delete 0.9→1.2rem',
+      'Gist sync: DEFAULT_GLASS_OPTIONS expanded to 33',
+      'Gist sync: DEFAULT_BASE_SPIRITS +Bitters +Sweet Vermouth',
+      'Gist sync: DEFAULT_TECHNIQUE_OPTIONS +Shaken & Topped +Fat Wash',
+      'Gist sync: DEFAULT_GARNISH_GROUPS expanded with Pineapple Frond, Strawberry Slice/Fan, Apple Fan, Pear Fan, Blackberry, Mint Leaf, Grated Chocolate, Jalapeno, Toffee Shard, Paper Plane',
+      'Gist sync: DEFAULT_TAG_GROUPS Flavour +Honey/Mint/Cucumber/Ginger/Orange/White Chocolate, Origin +Underground Classic, Technique +Fat Wash',
+    ]
+  },
+  {
+    version: '2.1',
+    title: 'Settings consistency fixes',
+    userNotes: [
+      'Base Spirits and Techniques settings pages now render correctly',
+      'All six settings pages have consistent row layout and button order',
+      'Glass row button order aligned: arrows before rename (matching all other pages)',
+      'Tag duplicate bug fixed with deduplication on render',
+    ],
+    items: [
+      'renderStgBaseSpirits and renderStgTechniques fully rewritten (were broken from template conversion)',
+      'Glass row: swapped rename/arrows to match consistent order (name → ▲▼ → ✎ → ×)',
+      'All settings use div row layout with gap:8px, padding:5px',
+    ]
+  },
   {
     version: '2.0',
     title: 'Settings layout consistency',
@@ -3343,9 +3402,9 @@ function renderStgTags() {
       return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
         <span style="flex:1;font-size:0.82rem;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t)}</span>
         ${arrows}
-        <button onclick="startRenameTag('${safeG}','${safeT}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">✎</button>
+        <button onclick="startRenameTag('${safeG}','${safeT}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:1.1rem;opacity:.6;color:var(--ink-muted);padding:3px">✎</button>
         ${moveBtn}
-        <button onclick="removeTagFromGroup('${safeG}','${safeT}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">×</button>
+        <button onclick="removeTagFromGroup('${safeG}','${safeT}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:1.2rem;opacity:.6;color:var(--ink-muted);padding:3px">×</button>
       </div>`;
     }).join('');
     const safeGroup = group.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -3624,8 +3683,8 @@ function renderStgUnits() {
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
       <span style="flex:1;font-size:0.82rem;color:var(--ink)">${esc(u)}</span>
       ${reorderArrows(u, uIdx, customUnits.length, "reorderUnit('"+safeU+"',-1)", "reorderUnit('"+safeU+"',1)")}
-      <button onclick="startRenameUnit('${safeU}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">✎</button>
-      <button onclick="removeUnit('${safeU}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">×</button>
+      <button onclick="startRenameUnit('${safeU}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:1.1rem;opacity:.6;color:var(--ink-muted);padding:3px">✎</button>
+      <button onclick="removeUnit('${safeU}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:1.2rem;opacity:.6;color:var(--ink-muted);padding:3px">×</button>
     </div>`;
   }).join('');
 
@@ -3816,8 +3875,8 @@ function renderStgGarnishes() {
       return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
         <span style="flex:1;font-size:0.82rem;color:var(--ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(g)}</span>
         ${reorderArrows(g, gIdx, garnishes.length, "reorderGarnish('"+safeGrp+"','"+safeG+"',-1)", "reorderGarnish('"+safeGrp+"','"+safeG+"',1)")}
-        <button onclick="startRenameGarnishItem('${safeGrp}','${safeG}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">✎</button>
-        <button onclick="removeGarnishFromGroup('${safeGrp}','${safeG}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">×</button>
+        <button onclick="startRenameGarnishItem('${safeGrp}','${safeG}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:1.1rem;opacity:.6;color:var(--ink-muted);padding:3px">✎</button>
+        <button onclick="removeGarnishFromGroup('${safeGrp}','${safeG}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:1.2rem;opacity:.6;color:var(--ink-muted);padding:3px">×</button>
       </div>`;
     }).join('');
     const safeGroup = group.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -4005,8 +4064,8 @@ function renderStgGlasses() {
       </button>
       <span style="flex:1;font-size:0.82rem;color:var(--ink)">${esc(g)}</span>
       ${reorderArrows(g, activeGlasses.indexOf(g), activeGlasses.length, "reorderGlass('" + safeG + "',-1)", "reorderGlass('" + safeG + "',1)")}
-      <button onclick="startRenameGlass('${safeG}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">\u270e</button>
-      <button onclick="removeGlass('${safeG}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">\u00d7</button>
+      <button onclick="startRenameGlass('${safeG}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:1.1rem;opacity:.6;color:var(--ink-muted);padding:3px">\u270e</button>
+      <button onclick="removeGlass('${safeG}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:1.2rem;opacity:.6;color:var(--ink-muted);padding:3px">\u00d7</button>
     </div>`;
   }).join('');
 
@@ -4203,8 +4262,8 @@ function renderStgBaseSpirits() {
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
       <span style="flex:1;font-size:0.82rem;color:var(--ink)">${esc(s)}</span>
       ${reorderArrows(s, sIdx, active.length, "reorderBaseSpirit('"+safeS+"',-1)", "reorderBaseSpirit('"+safeS+"',1)")}
-      <button onclick="startRenameBaseSpirit('${safeS}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">\u270e</button>
-      <button onclick="removeBaseSpirit('${safeS}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">\u00d7</button>
+      <button onclick="startRenameBaseSpirit('${safeS}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:1.1rem;opacity:.6;color:var(--ink-muted);padding:3px">\u270e</button>
+      <button onclick="removeBaseSpirit('${safeS}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:1.2rem;opacity:.6;color:var(--ink-muted);padding:3px">\u00d7</button>
     </div>`;
   }).join('');
 
@@ -4255,8 +4314,8 @@ function renderStgTechniques() {
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
       <span style="flex:1;font-size:0.82rem;color:var(--ink)">${esc(t)}</span>
       ${reorderArrows(t, tIdx, active.length, "reorderTechnique('"+safeT+"',-1)", "reorderTechnique('"+safeT+"',1)")}
-      <button onclick="startRenameTechnique('${safeT}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">\u270e</button>
-      <button onclick="removeTechnique('${safeT}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">\u00d7</button>
+      <button onclick="startRenameTechnique('${safeT}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:1.1rem;opacity:.6;color:var(--ink-muted);padding:3px">\u270e</button>
+      <button onclick="removeTechnique('${safeT}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:1.2rem;opacity:.6;color:var(--ink-muted);padding:3px">\u00d7</button>
     </div>`;
   }).join('');
 
@@ -5144,12 +5203,12 @@ function getIceValue() {
 
 const DEFAULT_GARNISH_GROUPS = {
   'Citrus':      ['Lemon Peel','Lemon Twist','Lemon Wedge','Lemon Wheel','Lemon 1/2 Wheel','Lemon Cheek','Lime Peel','Lime Twist','Lime Wedge','Lime Wheel','Lime 1/2 Wheel','Lime Cheek','Orange Peel','Orange Twist','Orange Wedge','Orange Wheel','Orange 1/2 Wheel','Orange Cheek','Grapefruit Peel','Grapefruit Twist','Grapefruit Wedge','Grapefruit Wheel','Grapefruit 1/2 Wheel','Grapefruit Cheek'],
-  'Fruit':       ['Cherry','Luxardo Cherry','Maraschino Cherry','Pineapple Wedge','Strawberry','Apple Slice','Pear Slice','Banana Slice','Watermelon Wedge'],
-  'Herbs':       ['Mint Sprig','Rosemary Sprig','Basil Leaf','Thyme Sprig'],
+  'Fruit':       ['Cherry','Luxardo Cherry','Maraschino Cherry','Pineapple Wedge','Pineapple Frond','Strawberry','Strawberry Slice','Strawberry Fan','Apple Slice','Apple Fan','Pear Slice','Pear Fan','Banana Slice','Watermelon Wedge','Blackberry'],
+  'Herbs':       ['Mint Sprig','Mint Leaf','Rosemary Sprig','Basil Leaf','Thyme Sprig'],
   'Rims':        ['Salt Rim','Sugar Rim','Chilli Rim','Tajin Rim','Chocolate Dusted Rim','Coconut Rim'],
   'Dehydrates':  ['Dehydrated Lime','Dehydrated Orange','Dehydrated Lemon','Dehydrated Pineapple'],
   'Flamed':      ['Flamed Lime Peel','Flamed Lime Cheek','Flamed Lemon Peel','Flamed Lemon Cheek','Flamed Orange Peel','Flamed Orange Cheek','Flamed Grapefruit Peel','Flamed Grapefruit Cheek','Flamed Rosemary','Flamed Cinnamon Stick'],
-  'Other':       ['Olive','Cocktail Onion','Cinnamon Stick','Grated Nutmeg','Star Anise','Edible Flower','Cucumber Ribbon','Celery Stalk']
+  'Other':       ['Olive','Cocktail Onion','Cinnamon Stick','Grated Nutmeg','Grated Chocolate','Star Anise','Edible Flower','Cucumber Ribbon','Celery Stalk','Jalapeno','Toffee Shard','Paper Plane']
 };
 GARNISH_GROUPS = JSON.parse(JSON.stringify(DEFAULT_GARNISH_GROUPS));
 
