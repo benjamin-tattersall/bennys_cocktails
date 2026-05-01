@@ -4004,8 +4004,8 @@ function renderStgGlasses() {
         ${glassIcon(g, 18)}
       </button>
       <span style="flex:1;font-size:0.82rem;color:var(--ink)">${esc(g)}</span>
-      <button onclick="startRenameGlass('${safeG}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">\u270e</button>
       ${reorderArrows(g, activeGlasses.indexOf(g), activeGlasses.length, "reorderGlass('" + safeG + "',-1)", "reorderGlass('" + safeG + "',1)")}
+      <button onclick="startRenameGlass('${safeG}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">\u270e</button>
       <button onclick="removeGlass('${safeG}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">\u00d7</button>
     </div>`;
   }).join('');
@@ -4200,14 +4200,18 @@ function renderStgBaseSpirits() {
   const active = BASE_SPIRIT_OPTIONS.filter(s => !RETIRED_BASE_SPIRITS.includes(s));
   const spiritRows = active.map((s, sIdx) => {
     const safeS = esc(s).replace(/'/g, "\\'");
-    const arrows = reorderArrows(s, sIdx, active.length, `reorderBaseSpirit('${safeS}',-1)`, `reorderBaseSpirit('${safeS}',1)`);
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
       <span style="flex:1;font-size:0.82rem;color:var(--ink)">${esc(s)}</span>
       ${reorderArrows(s, sIdx, active.length, "reorderBaseSpirit('"+safeS+"',-1)", "reorderBaseSpirit('"+safeS+"',1)")}
-      <button onclick="startRenameBaseSpirit('${safeS}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">✎</button>
-      <button onclick="removeBaseSpirit('${safeS}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">×</button>
-    <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add base spirit…" id="new-spirit-input" onkeydown="if(event.key==='Enter'){addBaseSpirit();event.preventDefault()}"><button onclick="addBaseSpirit()">Add</button></div></div></div>`;
-    }).join('');
+      <button onclick="startRenameBaseSpirit('${safeS}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">\u270e</button>
+      <button onclick="removeBaseSpirit('${safeS}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">\u00d7</button>
+    </div>`;
+  }).join('');
+
+  pane.innerHTML = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">Manage base spirit options for the edit form dropdown.</div>
+    <div class="stg-group"><div class="stg-group-head"><span class="stg-group-name">Base Spirits</span></div>
+    <div class="stg-group-body" id="stg-spirit-body" style="display:flex;flex-direction:column;gap:0">${spiritRows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No base spirits yet.</span>'}</div>
+    <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add base spirit\u2026" id="new-spirit-input" onkeydown="if(event.key==='Enter'){addBaseSpirit();event.preventDefault()}"><button onclick="addBaseSpirit()">Add</button></div></div></div>`;
 }
 function reorderBaseSpirit(s, dir) {
   reorderInList(BASE_SPIRIT_OPTIONS, s, dir, renderStgBaseSpirits);
@@ -4243,18 +4247,23 @@ function confirmRenameBaseSpirit(oldS) {
 
 // ── SETTINGS: TECHNIQUES ─────────────────────────────────────────────────
 function renderStgTechniques() {
-  const pane = document.getElementById('stg-pane-techniques'); if(!pane) return;
-  const active = TECHNIQUE_OPTIONS.filter(t=>!RETIRED_TECHNIQUES.includes(t));
+  const pane = document.getElementById('stg-pane-techniques');
+  if (!pane) return;
+  const active = TECHNIQUE_OPTIONS.filter(t => !RETIRED_TECHNIQUES.includes(t));
   const techRows = active.map((t, tIdx) => {
     const safeT = esc(t).replace(/'/g, "\\'");
-    const arrows = reorderArrows(t, tIdx, active.length, `reorderTechnique('${safeT}',-1)`, `reorderTechnique('${safeT}',1)`);
     return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
       <span style="flex:1;font-size:0.82rem;color:var(--ink)">${esc(t)}</span>
       ${reorderArrows(t, tIdx, active.length, "reorderTechnique('"+safeT+"',-1)", "reorderTechnique('"+safeT+"',1)")}
-      <button onclick="startRenameTechnique('${safeT}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">✎</button>
-      <button onclick="removeTechnique('${safeT}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">×</button>
-    <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add technique…" id="new-technique-input" onkeydown="if(event.key==='Enter'){addTechnique();event.preventDefault()}"><button onclick="addTechnique()">Add</button></div></div></div>`;
-    }).join('');
+      <button onclick="startRenameTechnique('${safeT}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:0.8rem;opacity:.6;color:var(--ink-muted);padding:2px">\u270e</button>
+      <button onclick="removeTechnique('${safeT}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">\u00d7</button>
+    </div>`;
+  }).join('');
+
+  pane.innerHTML = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">Manage technique options for the edit form dropdown.</div>
+    <div class="stg-group"><div class="stg-group-head"><span class="stg-group-name">Techniques</span></div>
+    <div class="stg-group-body" id="stg-technique-body" style="display:flex;flex-direction:column;gap:0">${techRows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No techniques yet.</span>'}</div>
+    <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add technique\u2026" id="new-technique-input" onkeydown="if(event.key==='Enter'){addTechnique();event.preventDefault()}"><button onclick="addTechnique()">Add</button></div></div></div>`;
 }
 function reorderTechnique(t, dir) {
   reorderInList(TECHNIQUE_OPTIONS, t, dir, renderStgTechniques);
