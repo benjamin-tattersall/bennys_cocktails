@@ -2034,10 +2034,24 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '2.8';
+const APP_VERSION = '2.9';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '2.9',
+    title: 'Rim fixes & dropdown sync',
+    userNotes: [
+      'Fixed: Rims no longer appear in the Garnish settings tab',
+      'Fixed: Rim dropdown in edit form now updates immediately when rims are added, removed, or reordered in settings',
+      'All managed dropdowns (Base Spirit, Technique, Rim) now refresh live when settings change while the edit form is open',
+    ],
+    items: [
+      'applySettingsObj: auto-removes Rims category from garnish groups on load',
+      'refreshEditFormDropdowns(): rebuilds rim, spirit, technique selects when settings change',
+      'saveSettings() calls refreshEditFormDropdowns() after persisting',
+    ]
+  },
   {
     version: '2.8',
     title: 'Rim field \u2014 separate from garnish',
@@ -3388,6 +3402,13 @@ function applySettingsObj(s) {
     });
   }
   GARNISH_OPTIONS.sort((a,b) => a.localeCompare(b));
+  // Remove Rims from garnish groups (migrated to separate rim field in v2.8)
+  if (GARNISH_GROUPS['Rims']) {
+    delete GARNISH_GROUPS['Rims'];
+  }
+  // Also clean rim items from GARNISH_OPTIONS
+  const rimNames = (typeof RIM_OPTIONS !== 'undefined' ? RIM_OPTIONS : []).map(r => r.toLowerCase());
+  GARNISH_OPTIONS = GARNISH_OPTIONS.filter(g => !rimNames.includes(g.toLowerCase()));
   if (s.glassOptions) GLASS_OPTIONS = s.glassOptions;
   if (s.retiredGlasses) RETIRED_GLASSES = s.retiredGlasses;
   if (s.glassIconMap) GLASS_ICON_MAP = s.glassIconMap;
@@ -3428,6 +3449,33 @@ function loadSettings() {
   }
 }
 
+function refreshEditFormDropdowns() {
+  // Refresh managed dropdowns if edit form is open
+  if (document.getElementById('emodal')?.classList.contains('open')) {
+    const rimVal = document.getElementById('f-rim')?.value || '';
+    populateRimSelect(rimVal);
+    // Also refresh other managed dropdowns
+    const spiritVal = document.getElementById('f-spirit')?.value || '';
+    const techVal = document.getElementById('f-technique')?.value || '';
+    const activeSpiritsOpts = BASE_SPIRIT_OPTIONS.filter(s => !RETIRED_BASE_SPIRITS.includes(s));
+    const spiritSel = document.getElementById('f-spirit');
+    if (spiritSel) {
+      const isInList = activeSpiritsOpts.includes(spiritVal);
+      spiritSel.innerHTML = '<option value="">— none —</option>' +
+        activeSpiritsOpts.map(s => `<option value="${esc(s)}"${spiritVal === s ? ' selected' : ''}>${esc(s)}</option>`).join('') +
+        (spiritVal && !isInList ? `<option value="${esc(spiritVal)}" selected>${esc(spiritVal)}</option>` : '');
+    }
+    const activeTechs = TECHNIQUE_OPTIONS.filter(t => !RETIRED_TECHNIQUES.includes(t));
+    const techSel = document.getElementById('f-technique');
+    if (techSel) {
+      const isInList = activeTechs.includes(techVal);
+      techSel.innerHTML = '<option value="">— select —</option>' +
+        activeTechs.map(t => `<option value="${esc(t)}"${techVal === t ? ' selected' : ''}>${esc(t)}</option>`).join('') +
+        (techVal && !isInList ? `<option value="${esc(techVal)}" selected>${esc(techVal)}</option>` : '');
+    }
+  }
+}
+
 async function saveSettings() {
   localStorage.setItem('cocktails_settings_cache', JSON.stringify(buildSettingsObj()));
   if (gistId && ghToken && isOnline) {
@@ -3439,6 +3487,7 @@ async function saveSettings() {
       });
     } catch(e) { /* will sync next time */ }
   }
+  refreshEditFormDropdowns();
 }
 
 function openSettings() {
@@ -4185,6 +4234,13 @@ function addGarnishToGroup(group) {
   if (!GARNISH_OPTIONS.map(x=>x.toLowerCase()).includes(g.toLowerCase())) {
     GARNISH_OPTIONS.push(g);
     GARNISH_OPTIONS.sort((a,b) => a.localeCompare(b));
+  // Remove Rims from garnish groups (migrated to separate rim field in v2.8)
+  if (GARNISH_GROUPS['Rims']) {
+    delete GARNISH_GROUPS['Rims'];
+  }
+  // Also clean rim items from GARNISH_OPTIONS
+  const rimNames = (typeof RIM_OPTIONS !== 'undefined' ? RIM_OPTIONS : []).map(r => r.toLowerCase());
+  GARNISH_OPTIONS = GARNISH_OPTIONS.filter(g => !rimNames.includes(g.toLowerCase()));
   }
   saveSettings();
   renderStgGarnishes();
@@ -4271,6 +4327,13 @@ function confirmRenameGarnishItem(group, oldG) {
   }
   GARNISH_OPTIONS = GARNISH_OPTIONS.map(x => x === oldG ? newG : x);
   GARNISH_OPTIONS.sort((a,b) => a.localeCompare(b));
+  // Remove Rims from garnish groups (migrated to separate rim field in v2.8)
+  if (GARNISH_GROUPS['Rims']) {
+    delete GARNISH_GROUPS['Rims'];
+  }
+  // Also clean rim items from GARNISH_OPTIONS
+  const rimNames = (typeof RIM_OPTIONS !== 'undefined' ? RIM_OPTIONS : []).map(r => r.toLowerCase());
+  GARNISH_OPTIONS = GARNISH_OPTIONS.filter(g => !rimNames.includes(g.toLowerCase()));
   // Update recipes
   recipes.forEach(r => {
     if (r.garnish && r.garnish.includes(oldG)) {
@@ -5489,6 +5552,13 @@ function addFormGarnish(raw) {
   if (!GARNISH_OPTIONS.map(x=>x.toLowerCase()).includes(g.toLowerCase())) {
     GARNISH_OPTIONS.push(g);
     GARNISH_OPTIONS.sort((a,b) => a.localeCompare(b));
+  // Remove Rims from garnish groups (migrated to separate rim field in v2.8)
+  if (GARNISH_GROUPS['Rims']) {
+    delete GARNISH_GROUPS['Rims'];
+  }
+  // Also clean rim items from GARNISH_OPTIONS
+  const rimNames = (typeof RIM_OPTIONS !== 'undefined' ? RIM_OPTIONS : []).map(r => r.toLowerCase());
+  GARNISH_OPTIONS = GARNISH_OPTIONS.filter(g => !rimNames.includes(g.toLowerCase()));
   }
   saveSettings();
 }
