@@ -2022,10 +2022,22 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '2.6';
+const APP_VERSION = '2.7';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '2.7',
+    title: 'Confirm dialog system fix',
+    userNotes: [
+      'Fixed: all confirm/action dialogs now work correctly — discard changes, delete categories, move tags, remove items, save warnings',
+      'Root cause: the section name modal shared the same CSS class as the confirm overlay, causing querySelector to target the wrong element',
+    ],
+    items: [
+      'showConfirm: all querySelector calls now scoped to #confirm-overlay',
+      'Fixes: discard changes, tag category deletion, move tag, unnamed row removal, and all other confirm-based actions',
+    ]
+  },
   {
     version: '2.6',
     title: 'Bug fixes',
@@ -4531,9 +4543,9 @@ function showConfirm(title, msg, actions) {
   confirmActions = actions;
   document.getElementById('confirm-title').textContent = title;
   document.getElementById('confirm-msg').textContent   = msg;
-  const box = document.querySelector('.confirm-box');
+  const box = document.querySelector('#confirm-overlay .confirm-box');
   // Remove any existing replace-select
-  const existingSel = document.getElementById('replace-tag-select');
+  const existingSel = document.querySelector('#confirm-overlay #replace-tag-select');
   if (existingSel) existingSel.remove();
   // Add replace select if any action has selectOpts
   const replaceAction = actions.find(a => a.selectOpts);
@@ -4543,9 +4555,9 @@ function showConfirm(title, msg, actions) {
     sel.className = 'replace-select';
     const selectLabel = replaceAction.selectLabel || 'Choose replacement tag…';
     sel.innerHTML = `<option value="">${selectLabel}</option>${replaceAction.selectOpts}`;
-    document.getElementById('confirm-msg').after(sel);
+    document.querySelector('#confirm-overlay #confirm-msg').after(sel);
   }
-  const btns = document.querySelector('.confirm-btns');
+  const btns = document.querySelector('#confirm-overlay .confirm-btns');
   btns.innerHTML = `<button class="btn-sec" onclick="closeConfirm()">Cancel</button>` +
     actions.map((a, i) =>
       `<button class="${a.danger?'btn-danger':'btn-sec'}" onclick="confirmAction(${i})">${esc(a.label)}</button>`
