@@ -369,7 +369,7 @@ header{
   font-size:0.86rem;color:var(--ink);background:var(--cream);
   outline:none;transition:border-color .15s;resize:vertical;
 }
-#f-glass,#f-spirit,#f-technique,#f-ice,#f-variation-of,#stg-nav{
+#f-glass,#f-spirit,#f-technique,#f-ice,#f-rim,#f-variation-of,#stg-nav{
   min-height:38px;box-sizing:border-box;
   padding-top:0.5rem;padding-bottom:0.5rem;
   -webkit-appearance:none;appearance:none;
@@ -1402,6 +1402,13 @@ header{
         </div>
       </div>
 
+      <div class="fg">
+        <label>Rim</label>
+        <select id="f-rim" onfocus="preCaptureSnapshot()" onchange="captureFormSnapshot('Change rim')">
+          <option value="">— none —</option>
+        </select>
+      </div>
+
       <div style="display:flex;flex-direction:column">
         <div class="scalable-toggle-row" id="scalable-row" onclick="toggleScalable()">
           <label for="f-scalable">
@@ -1842,6 +1849,7 @@ header{
       <div class="stg-pane" id="stg-pane-glasses"></div>
       <div class="stg-pane" id="stg-pane-spirits"></div>
       <div class="stg-pane" id="stg-pane-techniques"></div>
+      <div class="stg-pane" id="stg-pane-rims"></div>
     </div>
     <div class="form-foot">
       <button class="btn-sec" onclick="closeSettings()">Done</button>
@@ -1950,6 +1958,10 @@ let TECHNIQUE_OPTIONS = [...DEFAULT_TECHNIQUE_OPTIONS];
 let RETIRED_TECHNIQUES = [];
 
 const ICE_OPTIONS = ['Regular','Crushed','Large Cube','Sphere','Block','Pebble','Shaved'];
+
+const DEFAULT_RIM_OPTIONS = ['Salt Rim','Sugar Rim','Chilli Rim','Tajin Rim','Chocolate Dusted Rim','Coconut Rim'];
+let RIM_OPTIONS = [...DEFAULT_RIM_OPTIONS];
+let RETIRED_RIMS = [];
 // ── GLASS ICONS ──────────────────────────────────────────────────────────
 const GLASS_ICONS = {
   // ── Short glasses ──
@@ -2022,10 +2034,31 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '2.7';
+const APP_VERSION = '2.8';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '2.8',
+    title: 'Rim field \u2014 separate from garnish',
+    userNotes: [
+      'New Rim field \u2014 choose from managed rim types (Salt, Sugar, Chilli, Tajin, Chocolate Dusted, Coconut)',
+      'Rim displayed in the recipe view meta row alongside glass, technique, and ice',
+      'New Settings \u2192 Rims page with full add/rename/delete/reorder/replace support',
+      'Rims removed from the Garnish system \u2014 they are now their own field',
+      'Existing recipes with rim garnishes will be auto-migrated on first load',
+    ],
+    items: [
+      'New data model field: rim (string or null)',
+      'Edit form: rim dropdown after Ice, with managed options',
+      'View meta: rim shown after ice type',
+      'Settings: Rims page (7th settings tab) with full CRUD + reorder',
+      'DEFAULT_RIM_OPTIONS with merge on load',
+      'Rims removed from DEFAULT_GARNISH_GROUPS',
+      'migrateRimGarnishes() auto-moves rim garnishes to rim field',
+      'Replace item modal supports rim type',
+    ]
+  },
   {
     version: '2.7',
     title: 'Confirm dialog system fix',
@@ -2712,6 +2745,7 @@ function _serializeForm() {
     technique: document.getElementById('f-technique')?.value || '',
     stdDrinks: document.getElementById('f-std-drinks')?.value || '',
     ice:      getIceValue(),
+    rim:      document.getElementById('f-rim')?.value || '',
     scalable: !document.getElementById('scalable-row')?.classList.contains('off'),
     ingHtml:  document.getElementById('ing-builder')?.innerHTML    || '',
     methHtml: document.getElementById('method-builder')?.innerHTML || '',
@@ -2764,6 +2798,7 @@ function applyFormSnapshot(snapshot) {
   if (document.getElementById('f-technique')) document.getElementById('f-technique').value = snapshot.technique || '';
   if (document.getElementById('f-std-drinks')) document.getElementById('f-std-drinks').value = snapshot.stdDrinks || '';
   populateIceSelect(snapshot.ice || '');
+  populateRimSelect(snapshot.rim || '');
   const frozenBtn = document.getElementById('frozen-toggle');
   if (frozenBtn) frozenBtn.classList.toggle('on', !!snapshot.frozen);
   const row = document.getElementById('scalable-row');
@@ -3301,6 +3336,8 @@ function buildSettingsObj() {
     retiredBaseSpirits: RETIRED_BASE_SPIRITS,
     techniqueOptions: TECHNIQUE_OPTIONS,
     retiredTechniques: RETIRED_TECHNIQUES,
+    rimOptions: RIM_OPTIONS,
+    retiredRims: RETIRED_RIMS,
     customUnitGroups: (() => {
       const custom = {};
       for (const [grp, units] of Object.entries(UNIT_GROUPS)) {
@@ -3358,6 +3395,30 @@ function applySettingsObj(s) {
   if (s.retiredBaseSpirits) RETIRED_BASE_SPIRITS = s.retiredBaseSpirits;
   if (s.techniqueOptions) TECHNIQUE_OPTIONS = s.techniqueOptions;
   if (s.retiredTechniques) RETIRED_TECHNIQUES = s.retiredTechniques;
+  if (s.rimOptions) RIM_OPTIONS = s.rimOptions;
+  if (s.retiredRims) RETIRED_RIMS = s.retiredRims;
+  // Merge default rims
+  DEFAULT_RIM_OPTIONS.forEach(r => {
+    if (!RIM_OPTIONS.map(x=>x.toLowerCase()).includes(r.toLowerCase())) RIM_OPTIONS.push(r);
+  });
+}
+
+// Auto-migrate rim garnishes to rim field
+function migrateRimGarnishes() {
+  const rimNames = RIM_OPTIONS.map(r => r.toLowerCase());
+  let migrated = 0;
+  recipes.forEach(r => {
+    if (r.garnish && !r.rim) {
+      const parts = r.garnish.split(',').map(g => g.trim());
+      const rimPart = parts.find(g => rimNames.includes(g.toLowerCase()));
+      if (rimPart) {
+        r.rim = rimPart;
+        r.garnish = parts.filter(g => g !== rimPart).join(', ') || null;
+        migrated++;
+      }
+    }
+  });
+  if (migrated > 0) { syncToGist(); toast(`Migrated ${migrated} rim${migrated!==1?'s':''} from garnish field`); }
 }
 
 function loadSettings() {
@@ -3398,9 +3459,88 @@ function switchStgPane(name) {
   if (name === 'glasses') renderStgGlasses();
   if (name === 'spirits') renderStgBaseSpirits();
   if (name === 'techniques') renderStgTechniques();
+  if (name === 'rims') renderStgRims();
 }
 
 // ── SETTINGS: TAGS ────────────────────────────────────────────────────────
+// ── SETTINGS: RIMS ────────────────────────────────────────────────────────
+function renderStgRims() {
+  const pane = document.getElementById('stg-pane-rims');
+  if (!pane) return;
+  const active = RIM_OPTIONS.filter(r => !RETIRED_RIMS.includes(r));
+  const rimRows = active.map((r, rIdx) => {
+    const safeR = esc(r).replace(/'/g, "\\'");
+    return `<div class="stg-item" data-name="${esc(r)}" style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
+      <span style="flex:1;font-size:0.82rem;color:var(--ink)">${esc(r)}</span>
+      ${reorderArrows(r, rIdx, active.length, "reorderRim('"+safeR+"',-1)", "reorderRim('"+safeR+"',1)")}
+      <button onclick="startRenameRim('${safeR}')" title="Rename" style="background:none;border:none;cursor:pointer;font-size:1.1rem;opacity:.6;color:var(--ink-muted);padding:3px">\u270e</button>
+      <button onclick="removeRim('${safeR}')" title="Remove" style="background:none;border:none;cursor:pointer;font-size:1.2rem;opacity:.6;color:var(--ink-muted);padding:3px">\u00d7</button>
+    </div>`;
+  }).join('');
+
+  pane.innerHTML = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">Manage rim options for the edit form dropdown.</div>
+    <div class="stg-group"><div class="stg-group-head"><span class="stg-group-name">Rim Types</span></div>
+    <div class="stg-group-body" id="stg-rim-body" style="display:flex;flex-direction:column;gap:0">${rimRows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No rim types yet.</span>'}</div>
+    <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add rim type\u2026" id="new-rim-input" onkeydown="if(event.key==='Enter'){addRim();event.preventDefault()}"><button onclick="addRim()">Add</button></div></div></div>`;
+}
+
+function addRim() {
+  const input = document.getElementById('new-rim-input'); const r = toTitleCase(input.value.trim()); if (!r) return;
+  if (RIM_OPTIONS.map(x=>x.toLowerCase()).includes(r.toLowerCase())) {
+    if (RETIRED_RIMS.map(x=>x.toLowerCase()).includes(r.toLowerCase())) { RETIRED_RIMS = RETIRED_RIMS.filter(x=>x.toLowerCase()!==r.toLowerCase()); saveSettings(); renderStgRims(); input.value=''; toast(`"${r}" restored`); return; }
+    toast(`"${r}" already exists`); return;
+  }
+  RIM_OPTIONS.push(r); saveSettings(); renderStgRims(); input.value=''; toast(`"${r}" added`);
+}
+
+function removeRim(r) {
+  const affected = recipes.filter(rec => rec.rim === r).length;
+  if (affected > 0) {
+    showConfirm(`Remove "${r}"?`, `Used in ${affected} recipe${affected!==1?'s':''}.`, [
+      { label: 'Remove from list only', danger: false, fn: () => { if (!RETIRED_RIMS.includes(r)) RETIRED_RIMS.push(r); saveSettings(); renderStgRims(); toast(`"${r}" removed`); }},
+      { label: 'Remove from all recipes', danger: true, fn: () => { recipes.forEach(rec => { if (rec.rim === r) rec.rim = null; }); if (!RETIRED_RIMS.includes(r)) RETIRED_RIMS.push(r); saveSettings(); syncToGist(); renderStgRims(); toast(`"${r}" removed`); }},
+      { label: 'Replace with\u2026', danger: false, fn: () => openReplaceItemModal('rim', r) }
+    ]);
+  } else {
+    showConfirm(`Remove "${r}"?`, 'Not used in any recipes.', [{ label: 'Remove', danger: true, fn: () => { if (!RETIRED_RIMS.includes(r)) RETIRED_RIMS.push(r); saveSettings(); renderStgRims(); toast(`"${r}" removed`); }}]);
+  }
+}
+
+function reorderRim(r, dir) { reorderInList(RIM_OPTIONS, r, dir, renderStgRims); }
+
+function startRenameRim(r) {
+  const body = document.getElementById('stg-rim-body'); if (!body) return;
+  for (const pill of body.querySelectorAll('.stg-item')) {
+    if (pill.dataset?.name === r) {
+      const ew = document.createElement('span'); ew.className = 'stg-tag-edit-wrap';
+      const safe = r.replace(/'/g, "\\'");
+      ew.innerHTML = `<input type="text" value="${esc(r)}" id="rename-rim-input" onkeydown="if(event.key==='Enter')confirmRenameRim('${safe}')"><button onclick="confirmRenameRim('${safe}')">\u2713</button><button onclick="renderStgRims()">\u2715</button>`;
+      pill.replaceWith(ew); ew.querySelector('input').focus(); ew.querySelector('input').select(); break;
+    }
+  }
+}
+
+function confirmRenameRim(oldR) {
+  const input = document.getElementById('rename-rim-input'); if (!input) return;
+  const newR = toTitleCase(input.value.trim());
+  if (!newR || newR === oldR) { renderStgRims(); return; }
+  if (RIM_OPTIONS.map(x=>x.toLowerCase()).includes(newR.toLowerCase()) && newR.toLowerCase() !== oldR.toLowerCase()) { toast(`"${newR}" already exists`); return; }
+  const count = recipes.filter(rec => rec.rim === oldR).length;
+  if (count > 0) {
+    showConfirm('Rename across all recipes?', `"${oldR}" is used in ${count} recipe${count!==1?'s':''}.`, [
+      { label: `Rename to "${newR}"`, danger: false, fn: () => {
+        RIM_OPTIONS = RIM_OPTIONS.map(x => x === oldR ? newR : x);
+        RETIRED_RIMS = RETIRED_RIMS.map(x => x === oldR ? newR : x);
+        recipes.forEach(rec => { if (rec.rim === oldR) rec.rim = newR; });
+        saveSettings(); syncToGist(); renderStgRims(); toast(`"${oldR}" renamed to "${newR}"`);
+      }}
+    ]);
+  } else {
+    RIM_OPTIONS = RIM_OPTIONS.map(x => x === oldR ? newR : x);
+    saveSettings(); renderStgRims(); toast(`"${oldR}" renamed to "${newR}"`);
+  }
+}
+
 // ── REORDER HELPERS ───────────────────────────────────────────────────────
 function moveInArray(arr, fromIdx, toIdx) {
   if (fromIdx < 0 || fromIdx >= arr.length || toIdx < 0 || toIdx >= arr.length) return;
@@ -4477,6 +4617,8 @@ function openReplaceItemModal(type, item, group) {
     options = BASE_SPIRIT_OPTIONS.filter(s => s !== item && !RETIRED_BASE_SPIRITS.includes(s));
   } else if (type === 'technique') {
     options = TECHNIQUE_OPTIONS.filter(t => t !== item && !RETIRED_TECHNIQUES.includes(t));
+  } else if (type === 'rim') {
+    options = RIM_OPTIONS.filter(r => r !== item && !RETIRED_RIMS.includes(r));
   }
   tagSelect.innerHTML = options.map(o => `<option value="${esc(o)}">${esc(o)}</option>`).join('') || '<option value="">\u2014 none available \u2014</option>';
 
@@ -4532,6 +4674,10 @@ function confirmReplaceItem() {
     recipes.forEach(r => { if (r.technique === item) r.technique = replacement; });
     if (!RETIRED_TECHNIQUES.includes(item)) RETIRED_TECHNIQUES.push(item);
     saveSettings(); renderStgTechniques();
+  } else if (type === 'rim') {
+    recipes.forEach(r => { if (r.rim === item) r.rim = replacement; });
+    if (!RETIRED_RIMS.includes(item)) RETIRED_RIMS.push(item);
+    saveSettings(); renderStgRims();
   }
   syncToGist();
   toast(`"${item}" replaced with "${replacement}"`);
@@ -5285,6 +5431,15 @@ function switchIceToDropdown() {
   captureFormSnapshot('Change ice');
 }
 
+function populateRimSelect(currentValue) {
+  const sel = document.getElementById('f-rim');
+  const activeRims = RIM_OPTIONS.filter(r => !RETIRED_RIMS.includes(r));
+  const isInList = activeRims.includes(currentValue);
+  sel.innerHTML = '<option value="">— none —</option>' +
+    activeRims.map(r => `<option value="${esc(r)}"${currentValue === r ? ' selected' : ''}>${esc(r)}</option>`).join('') +
+    (currentValue && !isInList ? `<option value="${esc(currentValue)}" selected>${esc(currentValue)}</option>` : '');
+}
+
 function getIceValue() {
   const sel = document.getElementById('f-ice');
   if (sel.value === '__manual__' || sel.style.display === 'none') {
@@ -5299,7 +5454,6 @@ const DEFAULT_GARNISH_GROUPS = {
   'Citrus':      ['Lemon Peel','Lemon Twist','Lemon Wedge','Lemon Wheel','Lemon 1/2 Wheel','Lemon Cheek','Lime Peel','Lime Twist','Lime Wedge','Lime Wheel','Lime 1/2 Wheel','Lime Cheek','Orange Peel','Orange Twist','Orange Wedge','Orange Wheel','Orange 1/2 Wheel','Orange Cheek','Grapefruit Peel','Grapefruit Twist','Grapefruit Wedge','Grapefruit Wheel','Grapefruit 1/2 Wheel','Grapefruit Cheek'],
   'Fruit':       ['Cherry','Luxardo Cherry','Maraschino Cherry','Pineapple Wedge','Pineapple Frond','Strawberry','Strawberry Slice','Strawberry Fan','Apple Slice','Apple Fan','Pear Slice','Pear Fan','Banana Slice','Watermelon Wedge','Blackberry'],
   'Herbs':       ['Mint Sprig','Mint Leaf','Rosemary Sprig','Basil Leaf','Thyme Sprig'],
-  'Rims':        ['Salt Rim','Sugar Rim','Chilli Rim','Tajin Rim','Chocolate Dusted Rim','Coconut Rim'],
   'Dehydrates':  ['Dehydrated Lime','Dehydrated Orange','Dehydrated Lemon','Dehydrated Pineapple'],
   'Flamed':      ['Flamed Lime Peel','Flamed Lime Cheek','Flamed Lemon Peel','Flamed Lemon Cheek','Flamed Orange Peel','Flamed Orange Cheek','Flamed Grapefruit Peel','Flamed Grapefruit Cheek','Flamed Rosemary','Flamed Cinnamon Stick'],
   'Other':       ['Olive','Cocktail Onion','Cinnamon Stick','Grated Nutmeg','Grated Chocolate','Star Anise','Edible Flower','Cucumber Ribbon','Celery Stalk','Jalapeno','Toffee Shard','Paper Plane']
@@ -5811,6 +5965,7 @@ function renderViewBody(r) {
     <span style="font-size:0.75rem;color:var(--ink-muted)"><strong style="color:var(--ink)">${r.standardDrinks}</strong> std drinks</span>
   </div>` : '';
   if (r.ice) metaItems.push(`<span class="vmeta">${esc(r.ice)} ice</span>`);
+  if (r.rim) metaItems.push(`<span class="vmeta">${esc(r.rim)}</span>`);
 
 
   // Helper: get the override key for the current scaleFactor
@@ -6351,6 +6506,9 @@ function openEdit(r) {
   // Ice dropdown
   populateIceSelect(r?.ice || '');
 
+  // Rim dropdown
+  populateRimSelect(r?.rim || '');
+
   // Spirit dropdown — populate from BASE_SPIRIT_OPTIONS
   const spiritSel = document.getElementById('f-spirit');
   const activeSpiritsOpts = BASE_SPIRIT_OPTIONS.filter(s => !RETIRED_BASE_SPIRITS.includes(s));
@@ -6742,6 +6900,7 @@ async function saveRecipe() {
     garnish: formGarnishes.length ? formGarnishes.join(', ') : null,
     standardDrinks: parseFloat(document.getElementById('f-std-drinks').value) || null,
     ice: getIceValue() || null,
+    rim: document.getElementById('f-rim')?.value || null,
     scalable,
     allowedScales: scalable ? {
       half:      document.getElementById('scale-half')?.checked ?? true,
