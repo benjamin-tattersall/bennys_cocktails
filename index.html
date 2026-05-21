@@ -1790,23 +1790,41 @@ header{
 <div class="backdrop" id="auth-modal">
   <div class="modal auth-modal">
     <div class="modal-head">
-      <h2>GitHub credentials</h2>
+      <h2>Connect</h2>
       <button class="xbtn" onclick="closeAuth()">✕</button>
     </div>
     <div class="auth-body">
-      <p class="auth-note">Your recipes are stored in a GitHub Gist. Enter your Gist ID and personal access token to connect. Credentials are stored only in this browser's localStorage.</p>
-      <div class="info-input-row">
-        <label>Gist ID</label>
-        <input type="text" id="auth-gist" placeholder="e.g. a1b2c3d4e5f6…">
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:0.8rem">
+        <button id="auth-tab-admin" onclick="switchAuthTab('admin')" style="flex:1;padding:8px;border:none;background:none;font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink);cursor:pointer;border-bottom:2px solid var(--accent);transition:all .15s">Admin</button>
+        <button id="auth-tab-viewer" onclick="switchAuthTab('viewer')" style="flex:1;padding:8px;border:none;background:none;font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s">Viewer</button>
       </div>
-      <div class="info-input-row">
-        <label>Personal Access Token</label>
-        <input type="password" id="auth-token" placeholder="ghp_…">
+      <div id="auth-admin-pane">
+        <p class="auth-note">Full access — create, edit, and manage cocktails. Requires a GitHub personal access token.</p>
+        <div class="info-input-row">
+          <label>Gist ID</label>
+          <input type="text" id="auth-gist" placeholder="e.g. a1b2c3d4e5f6…">
+        </div>
+        <div class="info-input-row">
+          <label>Personal Access Token</label>
+          <input type="password" id="auth-token" placeholder="ghp_…">
+        </div>
+      </div>
+      <div id="auth-viewer-pane" style="display:none">
+        <p class="auth-note">View-only access — browse, search, filter, and scale cocktails. No editing.</p>
+        <div class="info-input-row">
+          <label>Gist ID</label>
+          <input type="text" id="auth-viewer-gist" placeholder="e.g. a1b2c3d4e5f6…">
+        </div>
+        <div class="info-input-row">
+          <label>Viewer Code</label>
+          <input type="text" id="auth-viewer-code" placeholder="Enter the viewer code…">
+        </div>
+        <p style="font-size:0.75rem;color:var(--ink-faint);margin-top:0.5rem">Get the Gist ID and viewer code from the cocktail book owner.</p>
       </div>
     </div>
     <div class="form-foot">
       <button class="btn-sec" onclick="closeAuth()">Cancel</button>
-      <button class="btn-pri" onclick="saveAuthCreds()">Save &amp; reconnect</button>
+      <button class="btn-pri" id="auth-connect-btn" onclick="saveAuthCreds()">Save &amp; reconnect</button>
     </div>
   </div>
 </div>
@@ -1839,6 +1857,7 @@ header{
         <option value="spirits">Base Spirits</option>
         <option value="techniques">Techniques</option>
         <option value="rims">Rims</option>
+        <option value="access">Access</option>
       </select>
       <button class="xbtn" onclick="closeSettings()">✕</button>
     </div>
@@ -5156,19 +5175,51 @@ function switchInfoTab(name, btn) {
 }
 
 function openAuth() {
-  document.getElementById('auth-gist').value  = localStorage.getItem('cocktails_gist_id')  || '';
+  const isViewer = VIEW_ONLY || (!ghToken && viewerCode);
+  document.getElementById('auth-gist').value = localStorage.getItem('cocktails_gist_id') || '';
   document.getElementById('auth-token').value = localStorage.getItem('cocktails_gh_token') || '';
+  document.getElementById('auth-viewer-gist').value = localStorage.getItem('cocktails_gist_id') || '';
+  document.getElementById('auth-viewer-code').value = localStorage.getItem('cocktails_viewer_code') || '';
+  switchAuthTab(isViewer ? 'viewer' : 'admin');
   document.getElementById('auth-modal').classList.add('open');
 }
 function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); }
 
+function switchAuthTab(tab) {
+  document.getElementById('auth-admin-pane').style.display = tab === 'admin' ? '' : 'none';
+  document.getElementById('auth-viewer-pane').style.display = tab === 'viewer' ? '' : 'none';
+  document.getElementById('auth-tab-admin').style.borderBottomColor = tab === 'admin' ? 'var(--accent)' : 'transparent';
+  document.getElementById('auth-tab-admin').style.color = tab === 'admin' ? 'var(--ink)' : 'var(--ink-muted)';
+  document.getElementById('auth-tab-viewer').style.borderBottomColor = tab === 'viewer' ? 'var(--accent)' : 'transparent';
+  document.getElementById('auth-tab-viewer').style.color = tab === 'viewer' ? 'var(--ink)' : 'var(--ink-muted)';
+  document.getElementById('auth-connect-btn').textContent = tab === 'admin' ? 'Save & reconnect' : 'Connect as viewer';
+}
+
 function saveAuthCreds() {
-  const g = document.getElementById('auth-gist').value.trim();
-  const t = document.getElementById('auth-token').value.trim();
-  if (!g || !t) { toast('Please fill in both fields'); return; }
-  gistId=g; ghToken=t;
-  localStorage.setItem('cocktails_gist_id',g); localStorage.setItem('cocktails_gh_token',t);
-  closeAuth(); loadFromGist(); toast('Credentials saved — loading…');
+  const isViewerTab = document.getElementById('auth-viewer-pane').style.display !== 'none';
+  if (isViewerTab) {
+    const g = document.getElementById('auth-viewer-gist').value.trim();
+    const vc = document.getElementById('auth-viewer-code').value.trim();
+    if (!g || !vc) { toast('Please fill in both fields'); return; }
+    gistId = g; viewerCode = vc; ghToken = '';
+    localStorage.setItem('cocktails_gist_id', g);
+    localStorage.setItem('cocktails_viewer_code', vc);
+    localStorage.removeItem('cocktails_gh_token');
+    closeAuth();
+    connectAsViewer();
+  } else {
+    const g = document.getElementById('auth-gist').value.trim();
+    const t = document.getElementById('auth-token').value.trim();
+    if (!g || !t) { toast('Please fill in both fields'); return; }
+    gistId=g; ghToken=t; VIEW_ONLY=false; viewerCode='';
+    localStorage.setItem('cocktails_gist_id',g);
+    localStorage.setItem('cocktails_gh_token',t);
+    localStorage.removeItem('cocktails_viewer_code');
+    closeAuth();
+    applyAccessMode();
+    loadFromGist();
+    toast('Credentials saved — loading…');
+  }
 }
 
 // ── FILTER MODAL ──────────────────────────────────────────────────────────
