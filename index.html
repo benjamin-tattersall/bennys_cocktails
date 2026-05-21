@@ -2082,10 +2082,27 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '3.4';
+const APP_VERSION = '3.5';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '3.5',
+    title: 'Viewer access & info fixes',
+    userNotes: [
+      'Fixed: revoking a viewer access code now properly prevents reconnection',
+      "Fixed: What's New correctly shows viewer-relevant content only for view-only users",
+      'Scaling info tab rewritten for viewer context',
+    ],
+    viewerNotes: [
+      'Scaling help updated with clearer explanations',
+    ],
+    items: [
+      'connectAsViewer: validation checks accessCodes even when array is empty',
+      'checkWhatsNew deferred until after connectAsViewer resolves for viewers',
+      'applyViewerInfoContent: scaling tab rewritten for viewer perspective',
+    ]
+  },
   {
     version: '3.4',
     title: 'Viewer experience polish',
@@ -2736,12 +2753,19 @@ async function connectAsViewer() {
     const settingsFile = data.files?.['settings.json'];
     if (settingsFile) {
       const settings = JSON.parse(settingsFile.content);
-      const codes = settings.accessCodes || [];
-      const validCode = codes.some(ac => ac.code === viewerCode);
-      // Also check legacy single viewerCode
-      const legacyValid = settings.viewerCode && settings.viewerCode === viewerCode;
-      if (codes.length > 0 && !validCode && !legacyValid) {
-        toast('Invalid viewer code'); return;
+      const codes = settings.accessCodes;
+      const legacyCode = settings.viewerCode;
+      if (codes !== undefined) {
+        // New system: accessCodes array exists in settings
+        const validCode = codes.some(ac => ac.code === viewerCode);
+        if (!validCode) {
+          toast('Invalid viewer code'); return;
+        }
+      } else if (legacyCode) {
+        // Legacy: single viewerCode
+        if (legacyCode !== viewerCode) {
+          toast('Invalid viewer code'); return;
+        }
       }
     }
     // Load recipes
@@ -2759,6 +2783,7 @@ async function connectAsViewer() {
     applyAccessMode();
     render();
     toast('Connected as viewer');
+    setTimeout(checkWhatsNew, 300);
   } catch(e) {
     toast('Connection failed — check Gist ID');
   }
@@ -2803,7 +2828,17 @@ function applyViewerInfoContent() {
     <h3>Recipe variations</h3>
     <p>Some cocktails are linked as variations of another. If a recipe is a variant, you\u2019ll see a link to the parent recipe at the bottom. Parent recipes show all their variants as tappable links.</p>`;
 
-  // Scaling tab — keep as-is (viewers can scale)
+  // Scaling tab — viewer version
+  const scalePane = document.getElementById('info-pane-scaling');
+  if (scalePane) scalePane.innerHTML = `
+    <h3>Scaling a cocktail</h3>
+    <p>When viewing a recipe, use the <strong>\u00bd\u00d7 / 1\u00d7 / 2\u00d7 / 3\u00d7 / 4\u00d7 / 5\u00d7</strong> scale buttons to adjust quantities. Ingredient amounts update proportionally.</p>
+    <h3>Scale overrides</h3>
+    <p>Some ingredients may show specific amounts at certain scales rather than simple multiplication. For example, bitters or egg whites might have a fixed amount at larger scales. This is indicated automatically \u2014 the amount shown is always the correct one for that scale.</p>
+    <h3>Method steps at different scales</h3>
+    <p>Some method steps may change at larger scales. For example, a recipe might specify splitting into multiple shaker tins at 3\u00d7 or above. The step text updates automatically when you change the scale.</p>
+    <h3>Standard drinks</h3>
+    <p>If a recipe shows standard drinks, this value scales proportionally. At 2\u00d7 and above, it shows the total with a breakdown (e.g. \u201c3.0 (2 \u00d7 1.5) std drinks\u201d).</p>`;
 
   // Substitutes tab — viewer version
   const subsPane = document.getElementById('info-pane-substitutes');
@@ -2884,9 +2919,8 @@ function init() {
   updateBinBtn();
   applyAccessMode();
   // Viewer: reconnect to fetch latest data
-  if (VIEW_ONLY && gistId) connectAsViewer();
-  // Show What's New if this is a new version
-  setTimeout(checkWhatsNew, 800);
+  if (VIEW_ONLY && gistId) { connectAsViewer(); /* checkWhatsNew called after connect */ }
+  else { setTimeout(checkWhatsNew, 800); }
 }
 
 // ── OFFLINE ───────────────────────────────────────────────────────────────
