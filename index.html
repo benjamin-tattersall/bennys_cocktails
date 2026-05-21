@@ -1298,7 +1298,7 @@ header{
         <h2 id="vname" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Cocktail</h2>
 
       </div>
-      <button class="xbtn" onclick="editCurrent()" title="Edit cocktail" style="font-size:0.95rem;margin-right:8px">
+      <button class="xbtn admin-only" onclick="editCurrent()" title="Edit cocktail" style="font-size:0.95rem;margin-right:8px">
         <svg viewBox="0 0 14 14" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 2.5l2 2L5 11H3v-2L9.5 2.5z"/></svg>
       </button>
       <button class="xbtn" onclick="closeView()">✕</button>
@@ -1551,7 +1551,7 @@ header{
         <button class="info-tab" onclick="switchInfoTab('scaling',this)">Scaling</button>
         <button class="info-tab" onclick="switchInfoTab('substitutes',this)">Substitutes</button>
         <button class="info-tab" onclick="switchInfoTab('filter',this)">Filter &amp; Group</button>
-        <button class="info-tab" onclick="switchInfoTab('export',this)">Export</button>
+        <button class="info-tab admin-only" onclick="switchInfoTab('export',this)">Export</button>
         <button class="info-tab" onclick="switchInfoTab('mobile',this)">iPhone &amp; Offline</button>
       </div>
 
@@ -1808,6 +1808,16 @@ header{
           <label>Personal Access Token</label>
           <input type="password" id="auth-token" placeholder="ghp_…">
         </div>
+        <div id="auth-access-codes" style="border-top:1px solid var(--border);margin-top:1rem;padding-top:0.8rem">
+          <p style="font-size:0.82rem;font-weight:500;color:var(--ink);margin-bottom:0.4rem">Viewer access codes</p>
+          <p style="font-size:0.75rem;color:var(--ink-faint);margin-bottom:0.6rem">Create codes to share read-only access. Give recipients your Gist ID + a viewer code.</p>
+          <div id="access-codes-list"></div>
+          <div style="display:flex;gap:6px;margin-top:0.5rem">
+            <input type="text" id="new-access-code" placeholder="New code…" style="flex:1;border:1px solid var(--border);border-radius:var(--radius);padding:0.4rem 0.6rem;font-size:0.82rem;color:var(--ink);background:var(--cream);outline:none">
+            <input type="text" id="new-access-label" placeholder="Label (e.g. Max, Staff)…" style="flex:1;border:1px solid var(--border);border-radius:var(--radius);padding:0.4rem 0.6rem;font-size:0.82rem;color:var(--ink);background:var(--cream);outline:none">
+            <button onclick="addAccessCode()" style="padding:0.4rem 0.8rem;border:1px solid var(--accent);border-radius:var(--radius);background:var(--accent-light);color:var(--accent-text);font-size:0.8rem;cursor:pointer">Add</button>
+          </div>
+        </div>
       </div>
       <div id="auth-viewer-pane" style="display:none">
         <p class="auth-note">View-only access — browse, search, filter, and scale cocktails. No editing.</p>
@@ -1857,7 +1867,6 @@ header{
         <option value="spirits">Base Spirits</option>
         <option value="techniques">Techniques</option>
         <option value="rims">Rims</option>
-        <option value="access">Access</option>
       </select>
       <button class="xbtn" onclick="closeSettings()">✕</button>
     </div>
@@ -2071,10 +2080,30 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '3.2';
+const APP_VERSION = '3.3';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '3.3',
+    title: 'Viewer mode refinements',
+    userNotes: [
+      'Fixed: edit pencil hidden in recipe view for viewers',
+      'No-credentials state now defaults to view-only mode with sample cocktails',
+      'Access code management moved to the Connect modal (Admin tab)',
+      'Multiple access codes with labels — create, edit labels, revoke',
+      'Share different codes with different people (e.g. "Max", "Staff Access")',
+      'Export info tab hidden for viewers',
+    ],
+    items: [
+      'Edit button in vmodal header marked admin-only',
+      'init(): credsMissing sets VIEW_ONLY=true, applyAccessMode()',
+      'accessCodes array replaces single viewerCode',
+      'Access code CRUD in auth modal admin pane',
+      'connectAsViewer validates against accessCodes array',
+      'Export info tab admin-only',
+    ]
+  },
   {
     version: '3.2',
     title: 'Viewer mode',
@@ -2686,7 +2715,11 @@ async function connectAsViewer() {
     const settingsFile = data.files?.['settings.json'];
     if (settingsFile) {
       const settings = JSON.parse(settingsFile.content);
-      if (settings.viewerCode && settings.viewerCode !== viewerCode) {
+      const codes = settings.accessCodes || [];
+      const validCode = codes.some(ac => ac.code === viewerCode);
+      // Also check legacy single viewerCode
+      const legacyValid = settings.viewerCode && settings.viewerCode === viewerCode;
+      if (codes.length > 0 && !validCode && !legacyValid) {
         toast('Invalid viewer code'); return;
       }
     }
@@ -2735,6 +2768,7 @@ function init() {
   if (binCached) { try { bin = JSON.parse(binCached); } catch(e) { bin = []; } }
 
   loadSettings();
+  loadAccessCodes();
   buildWheels();
 
   window.addEventListener('online',  () => { isOnline=true;  updateOfflineBanner(); if(pendingSync.length) syncPending(); });
@@ -2758,17 +2792,19 @@ function init() {
   });
 
   if (credsMissing) {
+    VIEW_ONLY = true;
     const cached = localStorage.getItem('cocktails_recipes_cache');
     if (cached) {
       recipes = JSON.parse(cached);
       normaliseRecipes(recipes);
-      render();
     } else {
       recipes = seedSamples();
       localStorage.setItem('cocktails_recipes_cache', JSON.stringify(recipes));
-      render();
-      document.getElementById('setup-modal').classList.add('open');
     }
+    applyAccessMode();
+    render();
+    // Show setup modal for first-time users
+    if (!cached) document.getElementById('setup-modal').classList.add('open');
   } else {
     // Always fetch fresh from Gist — show cache immediately while fetch runs
     const cached = localStorage.getItem('cocktails_recipes_cache');
@@ -3499,7 +3535,7 @@ function buildSettingsObj() {
     retiredTechniques: RETIRED_TECHNIQUES,
     rimOptions: RIM_OPTIONS,
     retiredRims: RETIRED_RIMS,
-    viewerCode: localStorage.getItem('cocktails_viewer_code_setting') || '',
+    accessCodes: accessCodes,
     customUnitGroups: (() => {
       const custom = {};
       for (const [grp, units] of Object.entries(UNIT_GROUPS)) {
@@ -3570,6 +3606,7 @@ function applySettingsObj(s) {
   if (s.retiredTechniques) RETIRED_TECHNIQUES = s.retiredTechniques;
   if (s.rimOptions) RIM_OPTIONS = s.rimOptions;
   if (s.retiredRims) RETIRED_RIMS = s.retiredRims;
+  if (s.accessCodes) accessCodes = s.accessCodes;
   // Merge default rims
   DEFAULT_RIM_OPTIONS.forEach(r => {
     if (!RIM_OPTIONS.map(x=>x.toLowerCase()).includes(r.toLowerCase())) RIM_OPTIONS.push(r);
@@ -3661,7 +3698,7 @@ function switchStgPane(name) {
   if (name === 'spirits') renderStgBaseSpirits();
   if (name === 'techniques') renderStgTechniques();
   if (name === 'rims') renderStgRims();
-  if (name === 'access') renderStgAccess();
+
 }
 
 // ── SETTINGS: TAGS ────────────────────────────────────────────────────────
@@ -3743,7 +3780,64 @@ function confirmRenameRim(oldR) {
   }
 }
 
-// ── SETTINGS: ACCESS ──────────────────────────────────────────────────────
+// ── ACCESS CODES MANAGEMENT ───────────────────────────────────────────────
+let accessCodes = []; // [{code:'abc', label:'Max'}, ...]
+
+function loadAccessCodes() {
+  const saved = localStorage.getItem('cocktails_access_codes');
+  if (saved) { try { accessCodes = JSON.parse(saved); } catch(e) { accessCodes = []; } }
+}
+
+function saveAccessCodes() {
+  localStorage.setItem('cocktails_access_codes', JSON.stringify(accessCodes));
+  saveSettings();
+}
+
+function renderAccessCodes() {
+  const list = document.getElementById('access-codes-list');
+  if (!list) return;
+  if (!accessCodes.length) {
+    list.innerHTML = '<p style="font-size:0.78rem;color:var(--ink-faint);margin:0.3rem 0">No access codes yet.</p>';
+    return;
+  }
+  list.innerHTML = accessCodes.map((ac, i) => `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.06))">
+    <span style="font-size:0.82rem;color:var(--ink);font-family:monospace">${esc(ac.code)}</span>
+    <span style="flex:1;font-size:0.75rem;color:var(--ink-faint)">${esc(ac.label || '')}</span>
+    <button onclick="editAccessLabel(${i})" title="Edit label" style="background:none;border:none;cursor:pointer;font-size:0.9rem;opacity:.6;color:var(--ink-muted);padding:2px">✎</button>
+    <button onclick="removeAccessCode(${i})" title="Revoke" style="background:none;border:none;cursor:pointer;font-size:1rem;opacity:.6;color:var(--danger);padding:2px">×</button>
+  </div>`).join('');
+}
+
+function addAccessCode() {
+  const code = document.getElementById('new-access-code').value.trim();
+  const label = document.getElementById('new-access-label').value.trim();
+  if (!code) { toast('Please enter a code'); return; }
+  if (accessCodes.some(ac => ac.code === code)) { toast('Code already exists'); return; }
+  accessCodes.push({ code, label });
+  saveAccessCodes();
+  renderAccessCodes();
+  document.getElementById('new-access-code').value = '';
+  document.getElementById('new-access-label').value = '';
+  toast('Access code added');
+}
+
+function removeAccessCode(i) {
+  const ac = accessCodes[i];
+  showConfirm('Revoke access?', `Remove code "${ac.code}"${ac.label ? ` (${ac.label})` : ''}? Anyone using this code will lose access.`, [
+    { label: 'Revoke', danger: true, fn: () => { accessCodes.splice(i, 1); saveAccessCodes(); renderAccessCodes(); toast('Access code revoked'); }}
+  ]);
+}
+
+function editAccessLabel(i) {
+  const ac = accessCodes[i];
+  const newLabel = prompt('Label for this access code:', ac.label || '');
+  if (newLabel === null) return;
+  ac.label = newLabel.trim();
+  saveAccessCodes();
+  renderAccessCodes();
+}
+
+// ── SETTINGS: ACCESS (legacy, kept for compat) ──────────────────────────────────────────────────────
 function renderStgAccess() {
   const pane = document.getElementById('stg-pane-access');
   if (!pane) return;
@@ -5181,6 +5275,7 @@ function openAuth() {
   document.getElementById('auth-viewer-gist').value = localStorage.getItem('cocktails_gist_id') || '';
   document.getElementById('auth-viewer-code').value = localStorage.getItem('cocktails_viewer_code') || '';
   switchAuthTab(isViewer ? 'viewer' : 'admin');
+  renderAccessCodes();
   document.getElementById('auth-modal').classList.add('open');
 }
 function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); }
