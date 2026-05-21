@@ -1812,10 +1812,12 @@ header{
           <p style="font-size:0.82rem;font-weight:500;color:var(--ink);margin-bottom:0.4rem">Viewer access codes</p>
           <p style="font-size:0.75rem;color:var(--ink-faint);margin-bottom:0.6rem">Create codes to share read-only access. Give recipients your Gist ID + a viewer code.</p>
           <div id="access-codes-list"></div>
-          <div style="display:flex;gap:6px;margin-top:0.5rem">
-            <input type="text" id="new-access-code" placeholder="New code…" style="flex:1;border:1px solid var(--border);border-radius:var(--radius);padding:0.4rem 0.6rem;font-size:0.82rem;color:var(--ink);background:var(--cream);outline:none">
-            <input type="text" id="new-access-label" placeholder="Label (e.g. Max, Staff)…" style="flex:1;border:1px solid var(--border);border-radius:var(--radius);padding:0.4rem 0.6rem;font-size:0.82rem;color:var(--ink);background:var(--cream);outline:none">
-            <button onclick="addAccessCode()" style="padding:0.4rem 0.8rem;border:1px solid var(--accent);border-radius:var(--radius);background:var(--accent-light);color:var(--accent-text);font-size:0.8rem;cursor:pointer">Add</button>
+          <div style="margin-top:0.5rem;display:flex;flex-direction:column;gap:6px">
+            <input type="text" id="new-access-code" placeholder="New code…" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:0.4rem 0.6rem;font-size:0.82rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
+            <div style="display:flex;gap:6px">
+              <input type="text" id="new-access-label" placeholder="Label…" style="flex:1;border:1px solid var(--border);border-radius:var(--radius);padding:0.4rem 0.6rem;font-size:0.82rem;color:var(--ink);background:var(--cream);outline:none">
+              <button onclick="addAccessCode()" style="padding:0.4rem 0.8rem;border:1px solid var(--accent);border-radius:var(--radius);background:var(--accent-light);color:var(--accent-text);font-size:0.8rem;cursor:pointer;white-space:nowrap">Add</button>
+            </div>
           </div>
         </div>
       </div>
@@ -2080,10 +2082,29 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '3.3';
+const APP_VERSION = '3.4';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '3.4',
+    title: 'Viewer experience polish',
+    userNotes: [
+      'Access code inputs now on two rows for better mobile layout',
+      "What's New popup now shows viewer-relevant updates only for view-only users",
+      'Info modal completely rewritten for viewers \u2014 only covers viewing, searching, filtering, scaling, substitutes, and variations',
+    ],
+    viewerNotes: [
+      'Info tab now shows viewer-specific help content',
+    ],
+    items: [
+      'Access code layout: code on row 1, label+Add on row 2',
+      'CHANGELOG supports viewerNotes array alongside userNotes',
+      'checkWhatsNew uses viewerNotes when VIEW_ONLY',
+      'applyViewerInfoContent() rewrites Getting Started, Cocktails, and Substitutes info tabs',
+      'Scaling, Filter, and Mobile tabs kept as-is (relevant to viewers)',
+    ]
+  },
   {
     version: '3.3',
     title: 'Viewer mode refinements',
@@ -2746,11 +2767,57 @@ async function connectAsViewer() {
 function applyAccessMode() {
   const adminEls = document.querySelectorAll('.admin-only');
   adminEls.forEach(el => el.style.display = VIEW_ONLY ? 'none' : '');
-  // Update header title if viewer
   const titleEl = document.querySelector('.app-title');
-  if (titleEl && VIEW_ONLY) {
-    titleEl.title = 'View-only mode';
-  }
+  if (titleEl && VIEW_ONLY) titleEl.title = 'View-only mode';
+  // Update info modal for viewer mode
+  if (VIEW_ONLY) applyViewerInfoContent();
+}
+
+function applyViewerInfoContent() {
+  // Getting Started — viewer version
+  const startPane = document.getElementById('info-pane-start');
+  if (startPane) startPane.innerHTML = `
+    <h3>Welcome to Benny's Cocktails</h3>
+    <p>You're viewing a shared cocktail recipe book. Browse recipes, search by name, filter by category, and scale ingredients up or down.</p>
+    <h3>Connecting as a viewer</h3>
+    <ol>
+      <li>Tap the <strong>\ud83d\udd11 key icon</strong> in the header.</li>
+      <li>Switch to the <strong>Viewer</strong> tab.</li>
+      <li>Enter the <strong>Gist ID</strong> and <strong>Viewer Code</strong> provided by the cocktail book owner.</li>
+      <li>Tap <strong>Connect as viewer</strong>.</li>
+    </ol>
+    <h3>Setting up on a new device</h3>
+    <p>Each device connects separately. Tap the <strong>\ud83d\udd11 key icon</strong> and enter the same Gist ID and viewer code.</p>
+    <h3>Using without internet</h3>
+    <p>The app works offline from the last loaded data. A banner indicates when you're offline.</p>`;
+
+  // Cocktails tab — viewer version
+  const cocktailsPane = document.getElementById('info-pane-cocktails');
+  if (cocktailsPane) cocktailsPane.innerHTML = `
+    <h3>Browsing cocktails</h3>
+    <p>All cocktails are displayed as cards on the main page in alphabetical order. Tap a card to view the full recipe.</p>
+    <h3>Recipe view</h3>
+    <p>Each recipe shows the glass type, technique, ice type, rim, garnish, and standard drinks in the metadata row. Below that are the ingredients and method steps.</p>
+    <h3>Ticking off while making</h3>
+    <p>Tap any method step or ingredient to mark it as done \u2014 it fades with a strikethrough. Tap again to un-tick. Resets when you close the recipe.</p>
+    <h3>Recipe variations</h3>
+    <p>Some cocktails are linked as variations of another. If a recipe is a variant, you\u2019ll see a link to the parent recipe at the bottom. Parent recipes show all their variants as tappable links.</p>`;
+
+  // Scaling tab — keep as-is (viewers can scale)
+
+  // Substitutes tab — viewer version
+  const subsPane = document.getElementById('info-pane-substitutes');
+  if (subsPane) subsPane.innerHTML = `
+    <h3>Choosing a substitute</h3>
+    <p>Some ingredients have substitutes available. These show a <strong>\u21c4 button</strong> next to the ingredient in the recipe view. Tap it to see alternatives and select one to swap in.</p>
+    <h3>Substitute groups</h3>
+    <p>When substitutes are grouped (e.g. \u201cLow ABV Version\u201d, \u201cVirgin/Mocktail\u201d), a <strong>Mode bar</strong> appears above the ingredients. Tap a mode to activate all substitutes in that group at once. Tap <strong>Original</strong> to revert.</p>
+    <h3>Scaling substitutes</h3>
+    <p>Substitutes scale proportionally just like regular ingredients when you change the scale.</p>`;
+
+  // Filter tab — keep as-is (viewers can filter)
+  // Export tab — already hidden with admin-only class
+  // Mobile tab — keep as-is (viewers benefit from this)
 }
 
 function init() {
@@ -5104,7 +5171,8 @@ function checkWhatsNew() {
   const toShow = [];
   for (const entry of CHANGELOG) {
     if (entry.version === seen) break; // stop at the last seen version
-    if (entry.userNotes?.length) toShow.push(entry);
+    const notes = VIEW_ONLY ? entry.viewerNotes : entry.userNotes;
+    if (notes?.length) toShow.push(entry);
   }
 
   if (!toShow.length) {
