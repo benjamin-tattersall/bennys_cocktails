@@ -1862,6 +1862,7 @@ header{
     <div class="modal-head" style="flex-wrap:wrap;gap:6px">
       <h2 style="flex:1">Settings</h2>
       <select id="stg-nav" onchange="switchStgPane(this.value)" style="border:1px solid var(--border);border-radius:var(--radius);padding:5px 8px;font-family:'Instrument Sans',sans-serif;font-size:0.8rem;color:var(--ink);background:var(--paper);outline:none;cursor:pointer;max-width:160px">
+        <option value="general">General</option>
         <option value="tags">Tags</option>
         <option value="units">Units</option>
         <option value="garnishes">Garnishes</option>
@@ -1874,7 +1875,8 @@ header{
     </div>
     <div class="stg-body">
 
-      <div class="stg-pane active" id="stg-pane-tags"></div>
+      <div class="stg-pane active" id="stg-pane-general"></div>
+      <div class="stg-pane" id="stg-pane-tags"></div>
       <div class="stg-pane" id="stg-pane-units"></div>
       <div class="stg-pane" id="stg-pane-garnishes"></div>
       <div class="stg-pane" id="stg-pane-glasses"></div>
@@ -2082,10 +2084,30 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '3.5';
+const APP_VERSION = '3.6';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '3.6',
+    title: 'General settings & accent picker',
+    userNotes: [
+      'New Settings \u2192 General tab \u2014 customise your app name and accent colour',
+      'App name: change from "Benny\'s" to any name or venue. Updates header, title, info modal, and What\'s New.',
+      'Accent colour picker: 8 colour options (Deep Blue, Copper, Emerald, Purple, Rose, Amber, Teal, Slate). Changes apply instantly.',
+      'Settings saved to Gist \u2014 name and colour persist across devices and for viewers',
+    ],
+    viewerNotes: [
+      'App may display a custom name and accent colour set by the admin',
+    ],
+    items: [
+      'General settings tab with app name input + colour swatch picker',
+      'ACCENT_PALETTE: 8 curated dark-theme colour sets',
+      'applyAppName(): updates logo, title, info modal, whats new',
+      'setAccentColour(): updates CSS vars live via documentElement.style',
+      'Settings persistence: ownerName + accentName in buildSettingsObj',
+    ]
+  },
   {
     version: '3.5',
     title: 'Viewer access & info fixes',
@@ -2728,6 +2750,19 @@ let formTags = [];
 let formGarnishes = [];
 let gistId = '', ghToken = '';
 let VIEW_ONLY = false;
+let APP_OWNER_NAME = localStorage.getItem('cocktails_owner_name') || "Benny's";
+
+const ACCENT_PALETTE = [
+  { name: 'Deep Blue',    accent: '#4080c8', dim: '#3068a8', light: '#1a2535', text: '#70a8e0' },
+  { name: 'Copper',       accent: '#c87040', dim: '#a85830', light: '#3a2a20', text: '#e8a070' },
+  { name: 'Emerald',      accent: '#40a868', dim: '#308850', light: '#1a3525', text: '#70d898' },
+  { name: 'Purple',       accent: '#8858c8', dim: '#7040a8', light: '#2a1a35', text: '#b888e8' },
+  { name: 'Rose',         accent: '#c85070', dim: '#a84058', light: '#351a25', text: '#e87898' },
+  { name: 'Amber',        accent: '#c89840', dim: '#a87830', light: '#352a1a', text: '#e8c070' },
+  { name: 'Teal',         accent: '#40a8a8', dim: '#308888', light: '#1a3535', text: '#70d8d8' },
+  { name: 'Slate',        accent: '#6880a0', dim: '#506888', light: '#1a2030', text: '#90a8c8' },
+];
+let CURRENT_ACCENT = localStorage.getItem('cocktails_accent_name') || 'Deep Blue';
 let viewerCode = '';
 let isOnline = navigator.onLine;
 let wheelDrag = {};
@@ -2780,7 +2815,9 @@ async function connectAsViewer() {
       applySettingsObj(JSON.parse(settingsFile.content));
     }
     VIEW_ONLY = true;
-    applyAccessMode();
+    applyAppName();
+  applyAccentFromSettings();
+  applyAccessMode();
     render();
     toast('Connected as viewer');
     setTimeout(checkWhatsNew, 300);
@@ -2903,7 +2940,9 @@ function init() {
       recipes = seedSamples();
       localStorage.setItem('cocktails_recipes_cache', JSON.stringify(recipes));
     }
-    applyAccessMode();
+    applyAppName();
+  applyAccentFromSettings();
+  applyAccessMode();
     render();
     // Show setup modal for first-time users
     if (!cached) document.getElementById('setup-modal').classList.add('open');
@@ -2917,6 +2956,8 @@ function init() {
     loadFromGist();
   }
   updateBinBtn();
+  applyAppName();
+  applyAccentFromSettings();
   applyAccessMode();
   // Viewer: reconnect to fetch latest data
   if (VIEW_ONLY && gistId) { connectAsViewer(); /* checkWhatsNew called after connect */ }
@@ -3637,6 +3678,8 @@ function buildSettingsObj() {
     rimOptions: RIM_OPTIONS,
     retiredRims: RETIRED_RIMS,
     accessCodes: accessCodes,
+    ownerName: APP_OWNER_NAME,
+    accentName: CURRENT_ACCENT,
     customUnitGroups: (() => {
       const custom = {};
       for (const [grp, units] of Object.entries(UNIT_GROUPS)) {
@@ -3708,6 +3751,8 @@ function applySettingsObj(s) {
   if (s.rimOptions) RIM_OPTIONS = s.rimOptions;
   if (s.retiredRims) RETIRED_RIMS = s.retiredRims;
   if (s.accessCodes) accessCodes = s.accessCodes;
+  if (s.ownerName) { APP_OWNER_NAME = s.ownerName; localStorage.setItem('cocktails_owner_name', s.ownerName); }
+  if (s.accentName) { CURRENT_ACCENT = s.accentName; localStorage.setItem('cocktails_accent_name', s.accentName); }
   // Merge default rims
   DEFAULT_RIM_OPTIONS.forEach(r => {
     if (!RIM_OPTIONS.map(x=>x.toLowerCase()).includes(r.toLowerCase())) RIM_OPTIONS.push(r);
@@ -3781,8 +3826,8 @@ async function saveSettings() {
 }
 
 function openSettings() {
-  document.getElementById('stg-nav').value = 'tags';
-  switchStgPane('tags');
+  document.getElementById('stg-nav').value = 'general';
+  switchStgPane('general');
   document.getElementById('settings-modal').classList.add('open');
 }
 function closeSettings() { document.getElementById('settings-modal').classList.remove('open'); }
@@ -3792,6 +3837,7 @@ function switchStgPane(name) {
   const pane = document.getElementById('stg-pane-'+name);
   if (pane) pane.classList.add('active');
   // Render on demand
+  if (name === 'general') renderStgGeneral();
   if (name === 'tags') renderStgTags();
   if (name === 'units') renderStgUnits();
   if (name === 'garnishes') renderStgGarnishes();
@@ -3878,6 +3924,84 @@ function confirmRenameRim(oldR) {
   } else {
     RIM_OPTIONS = RIM_OPTIONS.map(x => x === oldR ? newR : x);
     saveSettings(); renderStgRims(); toast(`"${oldR}" renamed to "${newR}"`);
+  }
+}
+
+// ── SETTINGS: GENERAL ─────────────────────────────────────────────────────
+function renderStgGeneral() {
+  const pane = document.getElementById('stg-pane-general');
+  if (!pane) return;
+  const colourSwatches = ACCENT_PALETTE.map(c => {
+    const isActive = c.name === CURRENT_ACCENT;
+    return `<button onclick="setAccentColour('${c.name}')" title="${c.name}" style="width:36px;height:36px;border-radius:50%;background:${c.accent};border:${isActive ? '3px solid var(--ink)' : '2px solid var(--border)'};cursor:pointer;transition:all .15s;flex-shrink:0${isActive ? ';box-shadow:0 0 0 2px var(--paper), 0 0 0 4px '+c.accent : ''}"></button>`;
+  }).join('');
+
+  pane.innerHTML = `
+    <div class="stg-group">
+      <div class="stg-group-head"><span class="stg-group-name">App Name</span></div>
+      <div style="padding:0.5rem 0.9rem 0.7rem">
+        <p style="font-size:0.78rem;color:var(--ink-faint);margin-bottom:0.5rem">The name shown in the header and throughout the app. The word "Cocktails" is always appended.</p>
+        <div class="stg-add-row">
+          <input type="text" id="stg-owner-name" placeholder="Your name or venue\u2026" value="${esc(APP_OWNER_NAME)}" style="flex:1">
+          <button onclick="saveOwnerName()">Save</button>
+        </div>
+        <p style="font-size:0.75rem;color:var(--ink-faint);margin-top:0.4rem">Preview: <strong>${esc(APP_OWNER_NAME)} Cocktails</strong></p>
+      </div>
+    </div>
+    <div class="stg-group" style="margin-top:0.8rem">
+      <div class="stg-group-head"><span class="stg-group-name">Accent Colour</span></div>
+      <div style="padding:0.5rem 0.9rem 0.7rem">
+        <p style="font-size:0.78rem;color:var(--ink-faint);margin-bottom:0.6rem">Choose the accent colour used for buttons, highlights, and active states.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:0.5rem">${colourSwatches}</div>
+        <p style="font-size:0.75rem;color:var(--ink-faint)">Current: <strong>${esc(CURRENT_ACCENT)}</strong></p>
+      </div>
+    </div>`;
+}
+
+function saveOwnerName() {
+  const name = document.getElementById('stg-owner-name').value.trim();
+  if (!name) { toast('Please enter a name'); return; }
+  APP_OWNER_NAME = name;
+  localStorage.setItem('cocktails_owner_name', name);
+  applyAppName();
+  saveSettings();
+  renderStgGeneral();
+  toast('App name updated');
+}
+
+function applyAppName() {
+  const logo = document.querySelector('.logo');
+  if (logo) logo.innerHTML = esc(APP_OWNER_NAME) + ' <em>Cocktails</em>';
+  document.title = APP_OWNER_NAME + ' Cocktails';
+  // Info modal title
+  const infoTitle = document.querySelector('#imodal .modal-head h2');
+  if (infoTitle) infoTitle.innerHTML = esc(APP_OWNER_NAME) + ' Cocktails <span id="info-version" style="font-size:0.72rem;font-weight:400;color:var(--ink-faint);font-family:\'Instrument Sans\',sans-serif"></span>';
+  // What's new title
+  const wnTitle = document.querySelector('#whats-new-modal .modal-head div');
+  if (wnTitle) wnTitle.innerHTML = '<div style="font-size:0.7rem;color:var(--ink-faint);font-family:\'Instrument Sans\',sans-serif;font-weight:400;margin-bottom:2px">' + esc(APP_OWNER_NAME) + ' Cocktails has been updated</div><h2>What\u2019s New</h2>';
+}
+
+function setAccentColour(name) {
+  const c = ACCENT_PALETTE.find(p => p.name === name);
+  if (!c) return;
+  CURRENT_ACCENT = name;
+  localStorage.setItem('cocktails_accent_name', name);
+  document.documentElement.style.setProperty('--accent', c.accent);
+  document.documentElement.style.setProperty('--accent-dim', c.dim);
+  document.documentElement.style.setProperty('--accent-light', c.light);
+  document.documentElement.style.setProperty('--accent-text', c.text);
+  saveSettings();
+  renderStgGeneral();
+  toast('Accent colour: ' + name);
+}
+
+function applyAccentFromSettings() {
+  const c = ACCENT_PALETTE.find(p => p.name === CURRENT_ACCENT);
+  if (c) {
+    document.documentElement.style.setProperty('--accent', c.accent);
+    document.documentElement.style.setProperty('--accent-dim', c.dim);
+    document.documentElement.style.setProperty('--accent-light', c.light);
+    document.documentElement.style.setProperty('--accent-text', c.text);
   }
 }
 
@@ -5190,7 +5314,9 @@ function saveSetup() {
     localStorage.setItem('cocktails_gh_token',t);
     localStorage.removeItem('cocktails_viewer_code');
     closeSetup();
-    applyAccessMode();
+    applyAppName();
+  applyAccentFromSettings();
+  applyAccessMode();
     loadFromGist();
   }
 }
@@ -5413,7 +5539,9 @@ function saveAuthCreds() {
     localStorage.setItem('cocktails_gh_token',t);
     localStorage.removeItem('cocktails_viewer_code');
     closeAuth();
-    applyAccessMode();
+    applyAppName();
+  applyAccentFromSettings();
+  applyAccessMode();
     loadFromGist();
     toast('Credentials saved — loading…');
   }
