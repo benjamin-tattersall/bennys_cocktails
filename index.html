@@ -2081,10 +2081,25 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '3.9';
+const APP_VERSION = '4.0';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '4.0',
+    title: 'Logo mobile scaling & glasses border fix',
+    userNotes: [
+      'App name scaling now only applies on mobile \u2014 desktop keeps full font size',
+      'More aggressive mobile scaling to prevent overlap with header buttons',
+      'Glasses settings tab now displays without bordered box (matching Base Spirits, Techniques, Rims)',
+    ],
+    viewerNotes: [],
+    items: [
+      'applyAppName: window.innerWidth <= 600 check for mobile-only scaling',
+      'Scale factor: max(0.5, 8/nameLen) \u2014 more aggressive than previous 9/nameLen',
+      'renderStgGlasses: removed stg-group wrapper',
+    ]
+  },
   {
     version: '3.9',
     title: 'Logo scaling & settings border fixes',
@@ -4015,16 +4030,14 @@ function applyAppName() {
   const logo = document.querySelector('.logo');
   if (logo) {
     logo.innerHTML = esc(APP_OWNER_NAME) + ' <em>Cocktails</em>';
-    // Scale font: 9 chars ("Cocktails") is the baseline at 1.25rem
-    // Names longer than 9 chars need proportionally smaller font
+    // Scale font on mobile only — desktop has ample space
     const nameLen = APP_OWNER_NAME.length;
-    const maxLen = Math.max(nameLen, 9); // whichever line is longer
-    if (maxLen <= 9) {
-      logo.style.fontSize = '1.25rem';
-    } else {
-      // Scale down: 9 chars = 1.25rem, 16 chars ≈ 0.75rem
-      const scale = Math.max(0.7, 9 / maxLen);
+    if (window.innerWidth <= 600 && nameLen > 9) {
+      // More aggressive scaling for mobile: 9 chars = 1.25rem, 16 chars ≈ 0.65rem
+      const scale = Math.max(0.5, 8 / nameLen);
       logo.style.fontSize = (1.25 * scale).toFixed(2) + 'rem';
+    } else {
+      logo.style.fontSize = '1.25rem';
     }
   }
   document.title = APP_OWNER_NAME + ' Cocktails';
@@ -4922,20 +4935,17 @@ function renderStgGlasses() {
   }).join('');
 
   pane.innerHTML = `
-    <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">
+    <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.5rem">
       Manage glass types and their icons. Tap an icon to change it.
     </div>
-    <div class="stg-group">
-      <div class="stg-group-head"><span class="stg-group-name">Glass Types</span></div>
-      <div class="stg-group-body" id="stg-glass-body" style="display:flex;flex-direction:column;gap:0">${rows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No glass types yet \u2014 add one below.</span>'}</div>
-      <div style="padding:0 0.9rem 0.7rem">
+      <div id="stg-glass-body" style="display:flex;flex-direction:column;gap:0">${rows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No glass types yet \u2014 add one below.</span>'}</div>
+      <div style="padding:0 0 0.7rem">
         <div class="stg-add-row">
           <input type="text" placeholder="Add glass type\u2026" id="new-glass-input"
             onkeydown="if(event.key==='Enter'){addGlass();event.preventDefault()}">
           <button onclick="addGlass()">Add</button>
         </div>
       </div>
-    </div>
     <div id="glass-icon-picker-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:600" onclick="closeGlassIconPicker()"></div>
     <div id="glass-icon-picker" style="display:none;position:fixed;z-index:601;background:var(--paper);border:1px solid var(--border);border-radius:var(--radius-lg,10px);padding:12px;box-shadow:0 8px 30px rgba(0,0,0,.4);max-width:280px;width:90%"></div>`;
 }
