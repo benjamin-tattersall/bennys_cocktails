@@ -2081,10 +2081,21 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '4.0';
+const APP_VERSION = '4.1';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '4.1',
+    title: 'Logo scaling tweak',
+    userNotes: [
+      'App name mobile scaling further reduced to prevent near-overlap with header buttons',
+    ],
+    viewerNotes: [],
+    items: [
+      'applyAppName: scale formula max(0.45, 7/nameLen) — 16 chars now ~0.55rem',
+    ]
+  },
   {
     version: '4.0',
     title: 'Logo mobile scaling & glasses border fix',
@@ -4034,7 +4045,7 @@ function applyAppName() {
     const nameLen = APP_OWNER_NAME.length;
     if (window.innerWidth <= 600 && nameLen > 9) {
       // More aggressive scaling for mobile: 9 chars = 1.25rem, 16 chars ≈ 0.65rem
-      const scale = Math.max(0.5, 8 / nameLen);
+      const scale = Math.max(0.45, 7 / nameLen);
       logo.style.fontSize = (1.25 * scale).toFixed(2) + 'rem';
     } else {
       logo.style.fontSize = '1.25rem';
