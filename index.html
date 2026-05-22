@@ -1886,7 +1886,6 @@ header{
       <div class="stg-pane" id="stg-pane-access"></div>
     </div>
     <div class="form-foot">
-      <button class="btn-sec" onclick="closeSettings()">Done</button>
     </div>
   </div>
 </div>
@@ -2084,10 +2083,23 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '3.6';
+const APP_VERSION = '3.7';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '3.7',
+    title: 'Settings sync & polish',
+    userNotes: [
+      'Fixed: accent colour and app name now sync correctly from Gist on all devices',
+      'Removed redundant Done button from settings window (X button serves the same purpose)',
+    ],
+    viewerNotes: [],
+    items: [
+      'loadFromGist: calls applyAppName + applyAccentFromSettings after fetching settings',
+      'Removed Done button from settings modal footer',
+    ]
+  },
   {
     version: '3.6',
     title: 'General settings & accent picker',
