@@ -2083,10 +2083,26 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '3.7';
+const APP_VERSION = '3.8';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '3.8',
+    title: 'Name limits & settings polish',
+    userNotes: [
+      'App name limited to 16 characters with responsive font sizing for longer names',
+      'Removed empty footer from settings window',
+      'Single-section settings tabs now display without the bordered box',
+    ],
+    viewerNotes: [],
+    items: [
+      'saveOwnerName: max 16 chars, input maxlength attribute',
+      '.logo: clamp(0.9rem, 4.5vw, 1.3rem) with overflow:hidden',
+      'Settings modal: empty form-foot div removed',
+      'CSS: .stg-pane > .stg-group:only-child removes border',
+    ]
+  },
   {
     version: '3.7',
     title: 'Settings sync & polish',
@@ -3952,9 +3968,9 @@ function renderStgGeneral() {
     <div class="stg-group">
       <div class="stg-group-head"><span class="stg-group-name">App Name</span></div>
       <div style="padding:0.5rem 0.9rem 0.7rem">
-        <p style="font-size:0.78rem;color:var(--ink-faint);margin-bottom:0.5rem">The name shown in the header and throughout the app. The word "Cocktails" is always appended.</p>
+        <p style="font-size:0.78rem;color:var(--ink-faint);margin-bottom:0.5rem">The name shown in the header. Max 16 characters. The word "Cocktails" is always appended.</p>
         <div class="stg-add-row">
-          <input type="text" id="stg-owner-name" placeholder="Your name or venue\u2026" value="${esc(APP_OWNER_NAME)}" style="flex:1">
+          <input type="text" id="stg-owner-name" maxlength="16" placeholder="Your name or venue\u2026" value="${esc(APP_OWNER_NAME)}" style="flex:1">
           <button onclick="saveOwnerName()">Save</button>
         </div>
         <p style="font-size:0.75rem;color:var(--ink-faint);margin-top:0.4rem">Preview: <strong>${esc(APP_OWNER_NAME)} Cocktails</strong></p>
@@ -3973,6 +3989,7 @@ function renderStgGeneral() {
 function saveOwnerName() {
   const name = document.getElementById('stg-owner-name').value.trim();
   if (!name) { toast('Please enter a name'); return; }
+  if (name.length > 16) { toast('Name must be 16 characters or fewer'); return; }
   APP_OWNER_NAME = name;
   localStorage.setItem('cocktails_owner_name', name);
   applyAppName();
