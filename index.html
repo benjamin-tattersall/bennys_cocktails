@@ -79,8 +79,8 @@ header{
   position:sticky;top:0;z-index:100;
 }
 .logo{
-  font-family:'Playfair Display',serif;font-size:clamp(0.9rem, 4.5vw, 1.25rem);color:#e8e0d8;
-  font-weight:500;letter-spacing:0.01em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
+  font-family:'Playfair Display',serif;font-size:1.25rem;color:#e8e0d8;
+  font-weight:500;letter-spacing:0.01em;flex:1;min-width:0;
 }
 .logo em{font-style:italic;color:var(--accent)}
 .hbtn{
@@ -1085,7 +1085,6 @@ header{
 }
 /* tag group in settings */
 .stg-group{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:0.6rem}
-.stg-pane > .stg-group:only-child{border:none;border-radius:0;margin-bottom:0}
 .stg-group-head{
   display:flex;align-items:center;justify-content:space-between;
   padding:0.55rem 0.9rem;background:var(--paper);border-bottom:1px solid var(--border);
@@ -2082,10 +2081,25 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '3.8';
+const APP_VERSION = '3.9';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '3.9',
+    title: 'Logo scaling & settings border fixes',
+    userNotes: [
+      'App name now scales both lines proportionally for longer names \u2014 no truncation',
+      'Single-section settings tabs (Base Spirits, Techniques, Rims) now display without bordered box',
+      'Settings footer removed',
+    ],
+    viewerNotes: [],
+    items: [
+      'applyAppName: JS-based font scaling by name length (9 chars baseline at 1.25rem)',
+      'Removed :only-child CSS approach, instead removed stg-group wrapper from single-section renders',
+      'Settings empty form-foot div removed',
+    ]
+  },
   {
     version: '3.8',
     title: 'Name limits & settings polish',
@@ -3891,8 +3905,8 @@ function renderStgRims() {
     </div>`;
   }).join('');
 
-  pane.innerHTML = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">Manage rim options for the edit form dropdown.</div>
-    <div class="stg-group"><div class="stg-group-head"><span class="stg-group-name">Rim Types</span></div>
+  pane.innerHTML = `<div style="border:none">
+    <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.5rem">Manage rim options for the edit form dropdown.</div>
     <div class="stg-group-body" id="stg-rim-body" style="display:flex;flex-direction:column;gap:0">${rimRows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No rim types yet.</span>'}</div>
     <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add rim type\u2026" id="new-rim-input" onkeydown="if(event.key==='Enter'){addRim();event.preventDefault()}"><button onclick="addRim()">Add</button></div></div></div>`;
 }
@@ -3999,7 +4013,20 @@ function saveOwnerName() {
 
 function applyAppName() {
   const logo = document.querySelector('.logo');
-  if (logo) logo.innerHTML = esc(APP_OWNER_NAME) + ' <em>Cocktails</em>';
+  if (logo) {
+    logo.innerHTML = esc(APP_OWNER_NAME) + ' <em>Cocktails</em>';
+    // Scale font: 9 chars ("Cocktails") is the baseline at 1.25rem
+    // Names longer than 9 chars need proportionally smaller font
+    const nameLen = APP_OWNER_NAME.length;
+    const maxLen = Math.max(nameLen, 9); // whichever line is longer
+    if (maxLen <= 9) {
+      logo.style.fontSize = '1.25rem';
+    } else {
+      // Scale down: 9 chars = 1.25rem, 16 chars ≈ 0.75rem
+      const scale = Math.max(0.7, 9 / maxLen);
+      logo.style.fontSize = (1.25 * scale).toFixed(2) + 'rem';
+    }
+  }
   document.title = APP_OWNER_NAME + ' Cocktails';
   // Info modal title
   const infoTitle = document.querySelector('#imodal .modal-head h2');
@@ -5092,8 +5119,8 @@ function renderStgBaseSpirits() {
     </div>`;
   }).join('');
 
-  pane.innerHTML = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">Manage base spirit options for the edit form dropdown.</div>
-    <div class="stg-group"><div class="stg-group-head"><span class="stg-group-name">Base Spirits</span></div>
+  pane.innerHTML = `<div style="border:none">
+    <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.5rem">Manage base spirit options for the edit form dropdown.</div>
     <div class="stg-group-body" id="stg-spirit-body" style="display:flex;flex-direction:column;gap:0">${spiritRows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No base spirits yet.</span>'}</div>
     <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add base spirit\u2026" id="new-spirit-input" onkeydown="if(event.key==='Enter'){addBaseSpirit();event.preventDefault()}"><button onclick="addBaseSpirit()">Add</button></div></div></div>`;
 }
@@ -5144,8 +5171,8 @@ function renderStgTechniques() {
     </div>`;
   }).join('');
 
-  pane.innerHTML = `<div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.2rem">Manage technique options for the edit form dropdown.</div>
-    <div class="stg-group"><div class="stg-group-head"><span class="stg-group-name">Techniques</span></div>
+  pane.innerHTML = `<div style="border:none">
+    <div style="font-size:0.82rem;color:var(--ink-muted);line-height:1.6;margin-bottom:0.5rem">Manage technique options for the edit form dropdown.</div>
     <div class="stg-group-body" id="stg-technique-body" style="display:flex;flex-direction:column;gap:0">${techRows || '<span style="font-size:0.78rem;color:var(--ink-faint)">No techniques yet.</span>'}</div>
     <div style="padding:0 0.9rem 0.7rem"><div class="stg-add-row"><input type="text" placeholder="Add technique\u2026" id="new-technique-input" onkeydown="if(event.key==='Enter'){addTechnique();event.preventDefault()}"><button onclick="addTechnique()">Add</button></div></div></div>`;
 }
