@@ -1808,7 +1808,7 @@ header{
           <label>Personal Access Token</label>
           <input type="password" id="auth-token" placeholder="ghp_…">
         </div>
-        <div id="auth-access-codes" style="border-top:1px solid var(--border);margin-top:1rem;padding-top:0.8rem">
+        <div id="auth-access-codes" class="admin-only" style="border-top:1px solid var(--border);margin-top:1rem;padding-top:0.8rem">
           <p style="font-size:0.82rem;font-weight:500;color:var(--ink);margin-bottom:0.4rem">Viewer access codes</p>
           <p style="font-size:0.75rem;color:var(--ink-faint);margin-bottom:0.6rem">Create codes to share read-only access. Give recipients your Gist ID + a viewer code.</p>
           <div id="access-codes-list"></div>
@@ -1824,17 +1824,21 @@ header{
       <div id="auth-viewer-pane" style="display:none">
         <p class="auth-note">View-only access — browse, search, filter, and scale cocktails. No editing.</p>
         <div class="info-input-row">
+          <label>Database</label>
+          <select id="auth-viewer-db" onchange="toggleViewerGistInput()" style="width:100%">
+            <option value="default" id="auth-viewer-db-default">Cocktail Book</option>
+            <option value="custom">Other database (enter Gist ID)</option>
+          </select>
+        </div>
+        <div class="info-input-row" id="auth-viewer-gist-row" style="display:none;margin-top:0.4rem">
+          <label>Gist ID</label>
+          <input type="text" id="auth-viewer-gist" placeholder="Enter the Gist ID…">
+        </div>
+        <div class="info-input-row">
           <label>Access Code</label>
           <input type="text" id="auth-viewer-code" placeholder="Enter the access code…">
         </div>
-        <p style="font-size:0.75rem;color:var(--ink-faint);margin-top:0.5rem">Get this code from the cocktail book owner.</p>
-        <details style="margin-top:0.5rem">
-          <summary style="font-size:0.75rem;color:var(--ink-faint);cursor:pointer">Connecting to a different database?</summary>
-          <div class="info-input-row" style="margin-top:0.4rem">
-            <label>Gist ID (optional)</label>
-            <input type="text" id="auth-viewer-gist" placeholder="Only needed for a different database…">
-          </div>
-        </details>
+        <p style="font-size:0.75rem;color:var(--ink-faint);margin-top:0.3rem">Get this code from the cocktail book owner.</p>
         <button onclick="disconnectViewer()" style="margin-top:0.8rem;width:100%;padding:8px;border:1px solid var(--danger);border-radius:var(--radius);background:none;color:var(--danger);font-size:0.8rem;cursor:pointer;display:none" id="auth-disconnect-btn">Disconnect</button>
       </div>
     </div>
@@ -1937,10 +1941,10 @@ header{
     </div>
     <div class="setup-body">
       <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:0.8rem">
-        <button class="setup-tab active" id="setup-tab-admin" onclick="switchSetupTab('admin')" style="flex:1;padding:8px;border:none;background:none;font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s">Admin</button>
-        <button class="setup-tab" id="setup-tab-viewer" onclick="switchSetupTab('viewer')" style="flex:1;padding:8px;border:none;background:none;font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s">Viewer</button>
+        <button class="setup-tab" id="setup-tab-admin" onclick="switchSetupTab('admin')" style="flex:1;padding:8px;border:none;background:none;font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s">Admin</button>
+        <button class="setup-tab active" id="setup-tab-viewer" onclick="switchSetupTab('viewer')" style="flex:1;padding:8px;border:none;background:none;font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s">Viewer</button>
       </div>
-      <div id="setup-admin-pane">
+      <div id="setup-admin-pane" style="display:none">
         <p style="font-size:0.82rem;color:var(--ink-mid);margin-bottom:0.7rem">Full access — create, edit, and manage cocktails. Requires a GitHub personal access token.</p>
         <div class="setup-input-row">
           <label>Gist ID</label>
@@ -1952,7 +1956,7 @@ header{
         </div>
         <p class="setup-note">Stored only in your browser's localStorage.</p>
       </div>
-      <div id="setup-viewer-pane" style="display:none">
+      <div id="setup-viewer-pane">
         <p style="font-size:0.82rem;color:var(--ink-mid);margin-bottom:0.7rem">View-only access — browse, search, filter, and scale cocktails. No editing.</p>
         <div class="setup-input-row">
           <label>Gist ID</label>
@@ -1967,7 +1971,7 @@ header{
     </div>
     <div class="form-foot">
       <button class="btn-sec" onclick="closeSetup()">Skip for now</button>
-      <button class="btn-pri" id="setup-connect-btn" onclick="saveSetup()">Connect</button>
+      <button class="btn-pri" id="setup-connect-btn" onclick="saveSetup()">Connect as viewer</button>
     </div>
   </div>
 </div>
@@ -2085,10 +2089,33 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '4.2';
+const APP_VERSION = '4.3';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '4.3',
+    title: 'Viewer access fixes',
+    userNotes: [
+      'Access codes section hidden from viewers in connect modal',
+      'Database dropdown replaces Gist ID input \u2014 shows admin\'s app name as default option',
+      'Admin Gist ID saved to settings.json so viewers on any device can connect',
+      'Setup modal now defaults to Viewer tab for new users',
+      'Disconnect properly clears access codes from cache',
+      'Name and accent colour now load correctly for viewers',
+    ],
+    viewerNotes: [
+      'Simplified connection \u2014 select the database and enter your access code',
+    ],
+    items: [
+      'adminGistId saved in buildSettingsObj + read in connectAsViewer',
+      'auth-access-codes marked admin-only',
+      'clearViewerSession clears cocktails_access_codes',
+      'Database dropdown in both auth + setup viewer panes',
+      'Setup modal: viewer tab active by default',
+      'applySettingsObj: fallback handling for ownerName/accentName',
+    ]
+  },
   {
     version: '4.2',
     title: 'Security & access improvements',
@@ -2885,12 +2912,13 @@ function disconnectViewer() {
 }
 
 function clearViewerSession() {
-  // Clear cached recipes and credentials, revert to sample cocktails
   localStorage.removeItem('cocktails_recipes_cache');
   localStorage.removeItem('cocktails_viewer_code');
   localStorage.removeItem('cocktails_gist_id');
+  localStorage.removeItem('cocktails_access_codes');
   viewerCode = '';
   gistId = '';
+  accessCodes = [];
   recipes = seedSamples();
   VIEW_ONLY = true;
   applyAccessMode();
@@ -2936,6 +2964,8 @@ async function connectAsViewer() {
     if (settingsFile) {
       applySettingsObj(JSON.parse(settingsFile.content));
     }
+    // Store admin's Gist ID for future viewer connections
+    if (settings.adminGistId) localStorage.setItem('cocktails_baked_gist_id', settings.adminGistId);
     VIEW_ONLY = true;
     applyAppName();
   applyAccentFromSettings();
@@ -3800,6 +3830,7 @@ function buildSettingsObj() {
     rimOptions: RIM_OPTIONS,
     retiredRims: RETIRED_RIMS,
     accessCodes: accessCodes,
+    adminGistId: gistId,
     ownerName: APP_OWNER_NAME,
     accentName: CURRENT_ACCENT,
     customUnitGroups: (() => {
@@ -3874,7 +3905,9 @@ function applySettingsObj(s) {
   if (s.retiredRims) RETIRED_RIMS = s.retiredRims;
   if (s.accessCodes) accessCodes = s.accessCodes;
   if (s.ownerName) { APP_OWNER_NAME = s.ownerName; localStorage.setItem('cocktails_owner_name', s.ownerName); }
+  else { APP_OWNER_NAME = localStorage.getItem('cocktails_owner_name') || "Benny's"; }
   if (s.accentName) { CURRENT_ACCENT = s.accentName; localStorage.setItem('cocktails_accent_name', s.accentName); }
+  else { CURRENT_ACCENT = localStorage.getItem('cocktails_accent_name') || 'Deep Blue'; }
   // Merge default rims
   DEFAULT_RIM_OPTIONS.forEach(r => {
     if (!RIM_OPTIONS.map(x=>x.toLowerCase()).includes(r.toLowerCase())) RIM_OPTIONS.push(r);
@@ -5419,17 +5452,19 @@ function switchSetupTab(tab) {
   document.getElementById('setup-tab-admin').style.color = tab === 'admin' ? 'var(--ink)' : 'var(--ink-muted)';
   document.getElementById('setup-tab-viewer').style.borderBottomColor = tab === 'viewer' ? 'var(--accent)' : 'transparent';
   document.getElementById('setup-tab-viewer').style.color = tab === 'viewer' ? 'var(--ink)' : 'var(--ink-muted)';
-  document.getElementById('setup-connect-btn').textContent = tab === 'admin' ? 'Connect' : 'Connect as viewer';
+  document.getElementById('setup-connect-btn').textContent = tab === 'admin' ? 'Connect as admin' : 'Connect as viewer';
 }
 function saveSetup() {
   const isViewerTab = document.getElementById('setup-viewer-pane').style.display !== 'none';
   if (isViewerTab) {
+    const dbSel = document.getElementById('setup-viewer-db');
+    const isCustomDb = dbSel && dbSel.value === 'custom';
     const explicitGist = document.getElementById('setup-viewer-gist')?.value.trim() || '';
     const vc = document.getElementById('setup-viewer-code').value.trim();
     if (!vc) { toast('Please enter an access code'); return; }
     const bakedId = localStorage.getItem('cocktails_baked_gist_id') || BAKED_GIST_ID;
-    const g = explicitGist || bakedId;
-    if (!g) { toast('No database found — please expand "Connecting to a different database" and enter a Gist ID'); return; }
+    const g = isCustomDb ? explicitGist : (bakedId || explicitGist);
+    if (!g) { toast('Please select a database or enter a Gist ID'); return; }
     gistId = g;
     viewerCode = vc;
     ghToken = '';
@@ -5639,12 +5674,21 @@ function openAuth() {
   const avCode = document.getElementById('auth-viewer-code');
   if (avCode) avCode.value = localStorage.getItem('cocktails_viewer_code') || '';
   switchAuthTab(isViewer ? 'viewer' : 'admin');
+  // Update viewer database label with app name
+  const dbDefault = document.getElementById('auth-viewer-db-default');
+  if (dbDefault) dbDefault.textContent = (APP_OWNER_NAME || "Benny's") + ' Cocktails';
   const disconnBtn = document.getElementById('auth-disconnect-btn');
   if (disconnBtn) disconnBtn.style.display = (VIEW_ONLY && viewerCode) ? 'block' : 'none';
   renderAccessCodes();
   document.getElementById('auth-modal').classList.add('open');
 }
 function closeAuth() { document.getElementById('auth-modal').classList.remove('open'); }
+
+function toggleViewerGistInput() {
+  const sel = document.getElementById('auth-viewer-db');
+  const row = document.getElementById('auth-viewer-gist-row');
+  if (sel && row) row.style.display = sel.value === 'custom' ? '' : 'none';
+}
 
 function switchAuthTab(tab) {
   document.getElementById('auth-admin-pane').style.display = tab === 'admin' ? '' : 'none';
@@ -5659,12 +5703,14 @@ function switchAuthTab(tab) {
 function saveAuthCreds() {
   const isViewerTab = document.getElementById('auth-viewer-pane').style.display !== 'none';
   if (isViewerTab) {
+    const dbSel = document.getElementById('auth-viewer-db');
+    const isCustomDb = dbSel && dbSel.value === 'custom';
     const explicitGist = document.getElementById('auth-viewer-gist')?.value.trim() || '';
     const vc = document.getElementById('auth-viewer-code').value.trim();
     if (!vc) { toast('Please enter an access code'); return; }
     const bakedId = localStorage.getItem('cocktails_baked_gist_id') || BAKED_GIST_ID;
-    const g = explicitGist || bakedId;
-    if (!g) { toast('No database found — please expand "Connecting to a different database" and enter a Gist ID'); return; }
+    const g = isCustomDb ? explicitGist : (bakedId || explicitGist);
+    if (!g) { toast('Please select a database or enter a Gist ID'); return; }
     gistId = g; viewerCode = vc; ghToken = '';
     localStorage.setItem('cocktails_gist_id', g);
     localStorage.setItem('cocktails_viewer_code', vc);
