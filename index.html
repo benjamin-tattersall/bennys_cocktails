@@ -3097,7 +3097,7 @@ function init() {
   applyAccessMode();
     render();
     // Show setup modal for first-time users
-    if (!cached) document.getElementById('setup-modal').classList.add('open');
+    if (!cached) { document.getElementById('setup-modal').classList.add('open'); switchSetupTab('viewer'); }
   } else {
     // Always fetch fresh from Gist — show cache immediately while fetch runs
     const cached = localStorage.getItem('cocktails_recipes_cache');
@@ -5445,6 +5445,14 @@ function confirmOk() { closeConfirm(); } // fallback
 // ── SETUP / INFO ──────────────────────────────────────────────────────────
 function closeSetup() { document.getElementById('setup-modal').classList.remove('open'); }
 
+function updateViewerDbLabels() {
+  const name = APP_OWNER_NAME || "Benny's";
+  const authLabel = document.getElementById('auth-viewer-db-default');
+  if (authLabel) authLabel.textContent = name + ' Cocktails';
+  const setupLabel = document.getElementById('setup-viewer-db-default');
+  if (setupLabel) setupLabel.textContent = name + ' Cocktails';
+}
+
 function switchSetupTab(tab) {
   document.getElementById('setup-admin-pane').style.display = tab === 'admin' ? '' : 'none';
   document.getElementById('setup-viewer-pane').style.display = tab === 'viewer' ? '' : 'none';
@@ -5674,9 +5682,7 @@ function openAuth() {
   const avCode = document.getElementById('auth-viewer-code');
   if (avCode) avCode.value = localStorage.getItem('cocktails_viewer_code') || '';
   switchAuthTab(isViewer ? 'viewer' : 'admin');
-  // Update viewer database label with app name
-  const dbDefault = document.getElementById('auth-viewer-db-default');
-  if (dbDefault) dbDefault.textContent = (APP_OWNER_NAME || "Benny's") + ' Cocktails';
+  updateViewerDbLabels();
   const disconnBtn = document.getElementById('auth-disconnect-btn');
   if (disconnBtn) disconnBtn.style.display = (VIEW_ONLY && viewerCode) ? 'block' : 'none';
   renderAccessCodes();
