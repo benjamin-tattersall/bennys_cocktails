@@ -1820,6 +1820,15 @@ header{
             </div>
           </div>
         </div>
+        <div id="auth-clone-section" class="admin-only" style="border-top:1px solid var(--border);margin-top:1rem;padding-top:0.8rem">
+          <p style="font-size:0.82rem;font-weight:500;color:var(--ink);margin-bottom:0.4rem">Clone recipes to another database</p>
+          <p style="font-size:0.75rem;color:var(--ink-faint);margin-bottom:0.6rem">Copy all published recipes to a friend's Gist. They get a full editable copy.</p>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <input type="text" id="clone-target-gist" placeholder="Friend's Gist ID" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:0.4rem 0.6rem;font-size:0.82rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
+            <input type="text" id="clone-target-token" placeholder="Friend's GitHub token" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:0.4rem 0.6rem;font-size:0.82rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
+            <button onclick="cloneRecipesToGist()" style="padding:0.5rem 0.8rem;border:1px solid var(--accent);border-radius:var(--radius);background:var(--accent-light);color:var(--accent-text);font-size:0.82rem;cursor:pointer;width:100%">Clone recipes</button>
+          </div>
+        </div>
         <button onclick="disconnectAdmin()" style="margin-top:0.8rem;width:100%;padding:8px;border:1px solid var(--danger);border-radius:var(--radius);background:none;color:var(--danger);font-size:0.8rem;cursor:pointer" id="auth-admin-disconnect-btn">Disconnect</button>
       </div>
       <div id="auth-viewer-pane" style="display:none">
@@ -2097,10 +2106,52 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '4.7';
+const APP_VERSION = '5.0';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '5.0',
+    title: 'Full settings clone & dev workflow',
+    userNotes: [
+      'Clone tool now copies all settings: tags, garnishes, glass icons, base spirits, techniques, rims, accent colour, app name',
+      'Cloned databases get the exact same experience \u2014 same filters, icons, and dropdowns',
+      'Access codes are NOT cloned (the new admin sets up their own)',
+    ],
+    viewerNotes: [],
+    items: [
+      'cloneRecipesToGist: uses buildSettingsObj() for full settings clone',
+      'Overrides adminGistId to target, clears accessCodes',
+    ]
+  },
+  {
+    version: '4.9',
+    title: 'Clone recipes tool',
+    userNotes: [
+      'New "Clone recipes" tool in the Connect modal (Admin tab)',
+      'Copy all published recipes to a friend\'s Gist in one tap',
+      'Clones include recipe data, app name, and accent colour',
+      'Friend gets a full independent copy they can edit',
+    ],
+    viewerNotes: [],
+    items: [
+      'cloneRecipesToGist(): copies published recipes + basic settings to target Gist',
+      'Clone UI in auth-admin-pane with Gist ID + token inputs',
+      'Confirm dialog shows recipe count before cloning',
+      'Recipe IDs randomised to prevent conflicts',
+    ]
+  },
+  {
+    version: '4.8',
+    title: 'Disconnect cleanup',
+    userNotes: [
+      'Disconnecting now properly resets app name and accent colour to defaults',
+    ],
+    viewerNotes: [],
+    items: [
+      'disconnectAdmin + clearViewerSession: reset APP_OWNER_NAME, CURRENT_ACCENT, clear localStorage, call applyAppName + applyAccentFromSettings',
+    ]
+  },
   {
     version: '4.7',
     title: 'Admin disconnect & viewer polish',
@@ -2970,6 +3021,53 @@ let pendingGroupBy = null; // T109: tracks selection within popup session before
 let servesMode  = 'exact'; // 'exact' | 'range' (form mode)
 
 // ── INIT ──────────────────────────────────────────────────────────────────
+async function cloneRecipesToGist() {
+  const targetGist = document.getElementById('clone-target-gist').value.trim();
+  const targetToken = document.getElementById('clone-target-token').value.trim();
+  if (!targetGist || !targetToken) { toast('Please enter both Gist ID and token'); return; }
+
+  const published = recipes.filter(r => r.status === 'published');
+  if (!published.length) { toast('No published recipes to clone'); return; }
+
+  showConfirm('Clone recipes?',
+    published.length + ' published recipe' + (published.length !== 1 ? 's' : '') + ' will be copied. This overwrites the target Gist\'s recipes.json.',
+    [{ label: 'Clone ' + published.length + ' recipes', danger: false, fn: async () => {
+      try {
+        // Reset IDs so they don't conflict, strip draft status
+        const cloned = published.map(r => {
+          const copy = JSON.parse(JSON.stringify(r));
+          copy.id = Date.now() + Math.floor(Math.random() * 10000);
+          copy.status = 'published';
+          return copy;
+        });
+
+        // Build full settings for the new database
+        const cloneSettings = buildSettingsObj();
+        // Override with target-specific values
+        cloneSettings.adminGistId = targetGist;
+        cloneSettings.accessCodes = []; // Don't clone access codes
+
+        const res = await fetch('https://api.github.com/gists/' + targetGist, {
+          method: 'PATCH',
+          headers: { Authorization: 'token ' + targetToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ files: {
+            'recipes.json': { content: JSON.stringify(cloned, null, 2) },
+            'settings.json': { content: JSON.stringify(cloneSettings, null, 2) },
+            'bin.json': { content: '[]' },
+          }})
+        });
+
+        if (!res.ok) { toast('Clone failed \u2014 check Gist ID and token'); return; }
+        toast('Cloned ' + cloned.length + ' recipes successfully!');
+        document.getElementById('clone-target-gist').value = '';
+        document.getElementById('clone-target-token').value = '';
+      } catch(e) {
+        toast('Clone failed \u2014 network error');
+      }
+    }}]
+  );
+}
+
 function disconnectAdmin() {
   showConfirm('Disconnect?', 'This will remove your admin credentials from this device. Your recipes remain safe in your Gist.', [
     { label: 'Disconnect', danger: true, fn: () => {
@@ -2978,10 +3076,16 @@ function disconnectAdmin() {
       localStorage.removeItem('cocktails_recipes_cache');
       localStorage.removeItem('cocktails_settings_cache');
       localStorage.removeItem('cocktails_access_codes');
+      localStorage.removeItem('cocktails_owner_name');
+      localStorage.removeItem('cocktails_accent_name');
       gistId = ''; ghToken = ''; viewerCode = '';
       accessCodes = [];
+      APP_OWNER_NAME = "Benny's";
+      CURRENT_ACCENT = 'Deep Blue';
       recipes = seedSamples();
       VIEW_ONLY = true;
+      applyAppName();
+      applyAccentFromSettings();
       applyAccessMode();
       render();
       closeAuth();
@@ -3005,11 +3109,17 @@ function clearViewerSession() {
   localStorage.removeItem('cocktails_viewer_code');
   localStorage.removeItem('cocktails_gist_id');
   localStorage.removeItem('cocktails_access_codes');
+  localStorage.removeItem('cocktails_owner_name');
+  localStorage.removeItem('cocktails_accent_name');
   viewerCode = '';
   gistId = '';
   accessCodes = [];
+  APP_OWNER_NAME = "Benny's";
+  CURRENT_ACCENT = 'Deep Blue';
   recipes = seedSamples();
   VIEW_ONLY = true;
+  applyAppName();
+  applyAccentFromSettings();
   applyAccessMode();
   render();
 }
