@@ -1810,7 +1810,7 @@ header{
         </div>
         <div id="auth-access-codes" class="admin-only" style="border-top:1px solid var(--border);margin-top:1rem;padding-top:0.8rem">
           <p style="font-size:0.82rem;font-weight:500;color:var(--ink);margin-bottom:0.4rem">Viewer access codes</p>
-          <p style="font-size:0.75rem;color:var(--ink-faint);margin-bottom:0.6rem">Create codes to share read-only access. Give recipients your Gist ID + a viewer code.</p>
+          <p style="font-size:0.75rem;color:var(--ink-faint);margin-bottom:0.6rem">Create codes to share read-only access. Give recipients an access code.</p>
           <div id="access-codes-list"></div>
           <div style="margin-top:0.5rem;display:flex;flex-direction:column;gap:6px">
             <input type="text" id="new-access-code" placeholder="New code…" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:0.4rem 0.6rem;font-size:0.82rem;color:var(--ink);background:var(--cream);outline:none;box-sizing:border-box">
@@ -1825,7 +1825,7 @@ header{
         <p class="auth-note">View-only access — browse, search, filter, and scale cocktails. No editing.</p>
         <div class="info-input-row">
           <label>Database</label>
-          <select id="auth-viewer-db" onchange="toggleViewerGistInput()" style="width:100%">
+          <select id="auth-viewer-db" onchange="toggleViewerGistInput()" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:0.45rem 0.7rem;font-size:0.86rem;color:var(--ink);background:var(--cream);outline:none;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 12 12%27%3E%3Cpath d=%27M3 4.5l3 3 3-3%27 fill=%27none%27 stroke=%27%237a6e65%27 stroke-width=%271.5%27 stroke-linecap=%27round%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 8px center;background-size:12px;padding-right:28px">
             <option value="default" id="auth-viewer-db-default">Cocktail Book</option>
             <option value="custom">Other database (enter Gist ID)</option>
           </select>
@@ -1937,36 +1937,43 @@ header{
   <div class="modal" style="max-width:420px">
     <div class="modal-head">
       <h2>Connect</h2>
-      <button class="xbtn" onclick="closeSetup()">\u2715</button>
+      <button class="xbtn" onclick="closeSetup()">&#x2715;</button>
     </div>
     <div class="setup-body">
       <div style="display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:0.8rem">
-        <button class="setup-tab" id="setup-tab-admin" onclick="switchSetupTab('admin')" style="flex:1;padding:8px;border:none;background:none;font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s">Admin</button>
-        <button class="setup-tab active" id="setup-tab-viewer" onclick="switchSetupTab('viewer')" style="flex:1;padding:8px;border:none;background:none;font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s">Viewer</button>
+        <button id="setup-tab-admin" onclick="switchSetupTab('admin')" style="flex:1;padding:8px;border:none;background:none;font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s">Admin</button>
+        <button id="setup-tab-viewer" onclick="switchSetupTab('viewer')" style="flex:1;padding:8px;border:none;background:none;font-family:'Instrument Sans',sans-serif;font-size:0.82rem;color:var(--ink);cursor:pointer;border-bottom:2px solid var(--accent);transition:all .15s">Viewer</button>
       </div>
       <div id="setup-admin-pane" style="display:none">
-        <p style="font-size:0.82rem;color:var(--ink-mid);margin-bottom:0.7rem">Full access — create, edit, and manage cocktails. Requires a GitHub personal access token.</p>
+        <p style="font-size:0.82rem;color:var(--ink-mid);margin-bottom:0.7rem">Full access &#x2014; create, edit, and manage cocktails.</p>
         <div class="setup-input-row">
           <label>Gist ID</label>
-          <input type="text" id="setup-gist" placeholder="a1b2c3d4e5f6\u2026">
+          <input type="text" id="setup-gist" placeholder="a1b2c3d4e5f6&#x2026;">
         </div>
         <div class="setup-input-row">
           <label>Personal Access Token</label>
-          <input type="password" id="setup-token" placeholder="ghp_\u2026">
+          <input type="password" id="setup-token" placeholder="ghp_&#x2026;">
         </div>
         <p class="setup-note">Stored only in your browser's localStorage.</p>
       </div>
       <div id="setup-viewer-pane">
-        <p style="font-size:0.82rem;color:var(--ink-mid);margin-bottom:0.7rem">View-only access — browse, search, filter, and scale cocktails. No editing.</p>
+        <p style="font-size:0.82rem;color:var(--ink-mid);margin-bottom:0.7rem">View-only access &#x2014; browse, search, and scale cocktails.</p>
         <div class="setup-input-row">
+          <label>Database</label>
+          <select id="setup-viewer-db" onchange="document.getElementById('setup-viewer-gist-row').style.display=this.value==='custom'?'':'none'" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:0.45rem 0.7rem;font-size:0.86rem;color:var(--ink);background:var(--cream);outline:none;-webkit-appearance:none;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 12 12%27%3E%3Cpath d=%27M3 4.5l3 3 3-3%27 fill=%27none%27 stroke=%27%237a6e65%27 stroke-width=%271.5%27 stroke-linecap=%27round%27/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 8px center;background-size:12px;padding-right:28px">
+            <option value="default" id="setup-viewer-db-default">Cocktail Book</option>
+            <option value="custom">Other database (enter Gist ID)</option>
+          </select>
+        </div>
+        <div class="setup-input-row" id="setup-viewer-gist-row" style="display:none">
           <label>Gist ID</label>
-          <input type="text" id="setup-viewer-gist" placeholder="a1b2c3d4e5f6\u2026">
+          <input type="text" id="setup-viewer-gist" placeholder="Enter the Gist ID&#x2026;">
         </div>
         <div class="setup-input-row">
-          <label>Viewer Code</label>
-          <input type="text" id="setup-viewer-code" placeholder="Enter the viewer code\u2026">
+          <label>Access Code</label>
+          <input type="text" id="setup-viewer-code" placeholder="Enter the access code&#x2026;">
         </div>
-        <p class="setup-note">Get the Gist ID and viewer code from the cocktail book owner.</p>
+        <p class="setup-note">Get the access code from the cocktail book owner.</p>
       </div>
     </div>
     <div class="form-foot">
@@ -2089,10 +2096,29 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '4.3';
+const APP_VERSION = '4.4';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '4.4',
+    title: 'Setup modal rebuild & styling',
+    userNotes: [
+      'Setup modal completely rebuilt \u2014 viewer tab shows database dropdown + access code',
+      'Database dropdowns styled to match dark app theme',
+      'Fixed special characters showing as literal text in modals',
+      'Access codes description simplified',
+    ],
+    viewerNotes: [
+      'Simplified first-time connect with database selection and access code',
+    ],
+    items: [
+      'Setup modal HTML rebuilt with HTML entities instead of unicode escapes',
+      'Database select styled: --cream bg, --border, custom SVG chevron, appearance:none',
+      'Auth modal database select: same dark theme styling',
+      'switchSetupTab(viewer) called when setup modal opens',
+    ]
+  },
   {
     version: '4.3',
     title: 'Viewer access fixes',
