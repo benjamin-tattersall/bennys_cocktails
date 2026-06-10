@@ -2096,10 +2096,24 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '4.4';
+const APP_VERSION = '4.5';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '4.5',
+    title: 'Viewer connection fix',
+    userNotes: [
+      'Fixed: viewer connection with manual Gist ID now works again',
+      'Root cause: settings variable was referenced out of scope in connectAsViewer',
+    ],
+    viewerNotes: [
+      'Connection reliability improved',
+    ],
+    items: [
+      'connectAsViewer: moved settings variable + adminGistId save inside settingsFile block',
+    ]
+  },
   {
     version: '4.4',
     title: 'Setup modal rebuild & styling',
@@ -2988,10 +3002,11 @@ async function connectAsViewer() {
     }
     // Load settings (read-only)
     if (settingsFile) {
-      applySettingsObj(JSON.parse(settingsFile.content));
+      const settings = JSON.parse(settingsFile.content);
+      applySettingsObj(settings);
+      // Store admin's Gist ID for future viewer connections
+      if (settings.adminGistId) localStorage.setItem('cocktails_baked_gist_id', settings.adminGistId);
     }
-    // Store admin's Gist ID for future viewer connections
-    if (settings.adminGistId) localStorage.setItem('cocktails_baked_gist_id', settings.adminGistId);
     VIEW_ONLY = true;
     applyAppName();
   applyAccentFromSettings();
