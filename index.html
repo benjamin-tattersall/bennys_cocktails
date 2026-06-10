@@ -1820,6 +1820,7 @@ header{
             </div>
           </div>
         </div>
+        <button onclick="disconnectAdmin()" style="margin-top:0.8rem;width:100%;padding:8px;border:1px solid var(--danger);border-radius:var(--radius);background:none;color:var(--danger);font-size:0.8rem;cursor:pointer" id="auth-admin-disconnect-btn">Disconnect</button>
       </div>
       <div id="auth-viewer-pane" style="display:none">
         <p class="auth-note">View-only access — browse, search, filter, and scale cocktails. No editing.</p>
@@ -2096,10 +2097,25 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '4.6';
+const APP_VERSION = '4.7';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '4.7',
+    title: 'Admin disconnect & viewer polish',
+    userNotes: [
+      "What's New popup no longer shows for view-only users",
+      'Admin disconnect button added to the Connect modal',
+      'Disconnecting clears all credentials and cached data from the device',
+    ],
+    viewerNotes: [],
+    items: [
+      'checkWhatsNew: early return when VIEW_ONLY',
+      'disconnectAdmin(): clears gist_id, gh_token, caches, reverts to view-only with samples',
+      'Admin disconnect button in auth-admin-pane, visible only when connected',
+    ]
+  },
   {
     version: '4.6',
     title: 'Default database',
@@ -2954,6 +2970,26 @@ let pendingGroupBy = null; // T109: tracks selection within popup session before
 let servesMode  = 'exact'; // 'exact' | 'range' (form mode)
 
 // ── INIT ──────────────────────────────────────────────────────────────────
+function disconnectAdmin() {
+  showConfirm('Disconnect?', 'This will remove your admin credentials from this device. Your recipes remain safe in your Gist.', [
+    { label: 'Disconnect', danger: true, fn: () => {
+      localStorage.removeItem('cocktails_gist_id');
+      localStorage.removeItem('cocktails_gh_token');
+      localStorage.removeItem('cocktails_recipes_cache');
+      localStorage.removeItem('cocktails_settings_cache');
+      localStorage.removeItem('cocktails_access_codes');
+      gistId = ''; ghToken = ''; viewerCode = '';
+      accessCodes = [];
+      recipes = seedSamples();
+      VIEW_ONLY = true;
+      applyAccessMode();
+      render();
+      closeAuth();
+      toast('Disconnected');
+    }}
+  ]);
+}
+
 function disconnectViewer() {
   showConfirm('Disconnect?', 'This will remove your viewer access. You can reconnect with the same code.', [
     { label: 'Disconnect', danger: true, fn: () => {
@@ -5554,6 +5590,7 @@ function saveSetup() {
 
 // ── WHAT'S NEW ────────────────────────────────────────────────────────────
 function checkWhatsNew() {
+  if (VIEW_ONLY) return; // No What's New for viewers
   const seen = localStorage.getItem('cocktails_seen_version');
   if (seen === APP_VERSION) return;
 
@@ -5737,6 +5774,8 @@ function openAuth() {
   if (avCode) avCode.value = localStorage.getItem('cocktails_viewer_code') || '';
   switchAuthTab(isViewer ? 'viewer' : 'admin');
   updateViewerDbLabels();
+  const adminDisc = document.getElementById('auth-admin-disconnect-btn');
+  if (adminDisc) adminDisc.style.display = (!VIEW_ONLY && ghToken) ? 'block' : 'none';
   const disconnBtn = document.getElementById('auth-disconnect-btn');
   if (disconnBtn) disconnBtn.style.display = (VIEW_ONLY && viewerCode) ? 'block' : 'none';
   renderAccessCodes();
