@@ -2096,10 +2096,23 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '4.5';
+const APP_VERSION = '4.6';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '4.6',
+    title: 'Default database',
+    userNotes: [
+      'Default database now works \u2014 viewers just need an access code to connect',
+    ],
+    viewerNotes: [
+      'Connect with just an access code \u2014 no Gist ID needed',
+    ],
+    items: [
+      'BAKED_GIST_ID hardcoded for default database',
+    ]
+  },
   {
     version: '4.5',
     title: 'Viewer connection fix',
@@ -2909,7 +2922,7 @@ let editId = null;
 let pendingSync = [];
 let formTags = [];
 let formGarnishes = [];
-const BAKED_GIST_ID = ''; // Set by admin in settings, used as default for viewers
+const BAKED_GIST_ID = '46caec02a3b745a1554de6553a390226';
 let gistId = '', ghToken = '';
 let VIEW_ONLY = false;
 let APP_OWNER_NAME = localStorage.getItem('cocktails_owner_name') || "Benny's";
