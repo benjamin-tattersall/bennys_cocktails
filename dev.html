@@ -2149,10 +2149,29 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '5.1';
+const APP_VERSION = '5.2';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '5.2',
+    title: 'Enter=new step & export updates',
+    userNotes: [
+      'Press Enter in a method step to create a new step below (Shift+Enter for line break)',
+      'All export formats updated for current data model: Base Spirit, Technique, Glass, Ice, Rim, Garnish, Std Drinks, Equipment, Variation Of',
+      'Removed obsolete fields from exports (Cook Time, Serves, Source, YouTube, Utensils)',
+      'CSV columns now match current recipe fields',
+    ],
+    viewerNotes: [],
+    items: [
+      'C117: addEventListener keydown on step-ta textareas, calls methodStepKeydown',
+      'C75: buildSingleRecipeTxt — all cocktail fields, optional flag, variation link',
+      'C75: buildSingleRecipeMd — meta row, equipment, variation link',
+      'C75: buildRecipesCsv — 16 columns matching current data model',
+      'C75: buildReadableBackup — delegates to buildSingleRecipeTxt',
+      'C75: buildRecipesMd — delegates to buildSingleRecipeMd',
+    ]
+  },
   {
     version: '5.1',
     title: 'Info modal comprehensive rewrite',
@@ -3681,22 +3700,28 @@ function buildSingleRecipeTxt(r) {
   const lines = [];
   lines.push(r.name || 'Untitled');
   lines.push('='.repeat((r.name || 'Untitled').length));
-  const hrs = r.hours || 0, mins = r.minutes || 0;
-  if (hrs || mins) lines.push('Time: ' + (hrs ? hrs + (hrs===1?' hr':' hrs') + ' ' : '') + (mins ? mins + ' mins' : ''));
-  const srv = r.serves;
-  if (srv != null) lines.push('Serves: ' + (typeof srv === 'object' ? srv.min + '–' + srv.max : srv));
-  if (r.source) lines.push('Source: ' + r.source);
-  if (r.utensils?.length) { lines.push(''); lines.push('Utensils: ' + r.utensils.join(', ')); }
+  if (r.spirit) lines.push('Base Spirit: ' + r.spirit);
+  if (r.technique) lines.push('Technique: ' + r.technique);
+  if (r.glass) lines.push('Glass: ' + r.glass + (r.glassFrozen ? ' (frozen)' : ''));
+  if (r.ice) lines.push('Ice: ' + r.ice);
+  if (r.rim) lines.push('Rim: ' + r.rim);
+  if (r.garnish) lines.push('Garnish: ' + r.garnish);
+  if (r.standardDrinks) lines.push('Standard Drinks: ' + r.standardDrinks);
+  if (r.equipment?.length) lines.push('Equipment: ' + r.equipment.join(', '));
   if (r.notes) { lines.push(''); lines.push('Notes: ' + r.notes); }
+  if (r.variationOf) {
+    const parent = recipes.find(p => p.id === r.variationOf);
+    if (parent) lines.push('Variation of: ' + parent.name);
+  }
   if (r.ingredients?.length) {
     lines.push(''); lines.push('INGREDIENTS');
     r.ingredients.forEach((sec, si) => {
       if (sec.title) { if (si > 0) lines.push(''); lines.push(sec.title.toUpperCase()); }
       (sec.items || []).forEach(item => {
         const qty = [item.amount != null ? item.amount : '', item.unit || ''].filter(Boolean).join(' ');
-        const prep = item.prep ? ', ' + item.prep : '';
         const note = item.note ? ' — ' + item.note : '';
-        lines.push('  • ' + (item.name || '?') + (qty ? ' — ' + qty : '') + prep + note);
+        const opt = item.optional ? ' (optional)' : '';
+        lines.push('  • ' + (item.name || '?') + (qty ? ' — ' + qty : '') + note + opt);
       });
     });
   }
@@ -3717,22 +3742,30 @@ function buildSingleRecipeMd(r) {
   const lines = [];
   lines.push('# ' + (r.name || 'Untitled'));
   lines.push('');
-  const hrs = r.hours || 0, mins = r.minutes || 0;
-  if (hrs || mins) lines.push('**Time:** ' + (hrs ? hrs + (hrs===1?' hr':' hrs') + ' ' : '') + (mins ? mins + ' mins' : ''));
-  const srv = r.serves;
-  if (srv != null) lines.push('**Serves:** ' + (typeof srv === 'object' ? srv.min + '–' + srv.max : srv));
-  if (r.source) lines.push('**Source:** ' + r.source);
-  if (r.utensils?.length) { lines.push(''); lines.push('**Utensils:** ' + r.utensils.join(', ')); }
+  const meta = [];
+  if (r.spirit) meta.push('**Base Spirit:** ' + r.spirit);
+  if (r.technique) meta.push('**Technique:** ' + r.technique);
+  if (r.glass) meta.push('**Glass:** ' + r.glass + (r.glassFrozen ? ' (frozen)' : ''));
+  if (r.ice) meta.push('**Ice:** ' + r.ice);
+  if (r.rim) meta.push('**Rim:** ' + r.rim);
+  if (r.garnish) meta.push('**Garnish:** ' + r.garnish);
+  if (r.standardDrinks) meta.push('**Standard Drinks:** ' + r.standardDrinks);
+  if (meta.length) { lines.push(meta.join(' | ')); lines.push(''); }
+  if (r.equipment?.length) lines.push('**Equipment:** ' + r.equipment.join(', '));
   if (r.notes) { lines.push(''); lines.push('> ' + r.notes); }
+  if (r.variationOf) {
+    const parent = recipes.find(p => p.id === r.variationOf);
+    if (parent) lines.push('*Variation of: ' + parent.name + '*');
+  }
   if (r.ingredients?.length) {
     lines.push(''); lines.push('## Ingredients'); lines.push('');
     r.ingredients.forEach(sec => {
       if (sec.title) { lines.push('**' + sec.title + '**'); lines.push(''); }
       (sec.items || []).forEach(item => {
         const qty = [item.amount != null ? item.amount : '', item.unit || ''].filter(Boolean).join(' ');
-        const prep = item.prep ? ' *('+item.prep+')*' : '';
         const note = item.note ? '\n  *Note: ' + item.note + '*' : '';
-        lines.push('- **' + (item.name||'?') + '**' + (qty?' — '+qty:'') + prep + note);
+        const opt = item.optional ? ' *(optional)*' : '';
+        lines.push('- **' + (item.name||'?') + '**' + (qty?' — '+qty:'') + note + opt);
       });
       lines.push('');
     });
@@ -3882,93 +3915,45 @@ function buildSingleRecipeHtml(r) {
 
 function buildReadableBackup() {
   const lines = [];
-  lines.push("BENNY'S RECIPES");
-  lines.push('='.repeat(60));
-  recipes.forEach((r, i) => {
-    lines.push('');
-    lines.push((r.name || 'Untitled'));
-    lines.push('-'.repeat(60));
-    const hrs = r.hours || 0, mins = r.minutes || 0;
-    if (hrs || mins) lines.push('Time:    ' + (hrs ? hrs + 'h ' : '') + (mins ? mins + 'min' : ''));
-    const srv = r.serves;
-    if (srv != null) lines.push('Serves:  ' + (typeof srv === 'object' ? srv.min + '–' + srv.max : srv));
-    if (r.source) lines.push('Source:  ' + r.source);
-    if (r.youtube) lines.push('YouTube: ' + r.youtube);
-    if (r.utensils && r.utensils.length) { lines.push(''); lines.push('Utensils: ' + r.utensils.join(', ')); }
-    if (r.notes) { lines.push(''); lines.push('Notes: ' + r.notes); }
-    if (r.ingredients && r.ingredients.length) {
-      lines.push('');
-      lines.push('INGREDIENTS');
-      r.ingredients.forEach(sec => {
-        if (sec.title) lines.push('  [ ' + sec.title + ' ]');
-        (sec.items || []).forEach(item => {
-          const qty = [item.amount != null ? item.amount : '', item.unit || ''].filter(Boolean).join(' ');
-          const prep = item.prep ? ' — ' + item.prep : '';
-          lines.push('  • ' + (item.name || '?') + (qty ? ':  ' + qty : '') + prep);
-          if (item.substitutes && item.substitutes.length) {
-            item.substitutes.forEach(s => {
-              const sqty = [s.amount != null ? s.amount : '', s.unit || ''].filter(Boolean).join(' ');
-              const sprep = s.prep ? ', ' + s.prep : '';
-              const snote = s.note ? ' [' + s.note + ']' : '';
-              lines.push('    ↳ Sub: ' + (s.name || '?') + (sqty ? ' ' + sqty : '') + sprep + snote);
-            });
-          }
-        });
-      });
-    }
-    if (r.method && r.method.length) {
-      lines.push('');
-      lines.push('METHOD');
-      r.method.forEach(sec => {
-        if (sec.title) lines.push('  [ ' + sec.title + ' ]');
-        (sec.steps || []).forEach((step, si) => {
-          lines.push('  ' + (si + 1) + '. ' + (step.text || ''));
-        });
-      });
-    }
-  });
+  lines.push(APP_OWNER_NAME + ' Cocktails');
+  lines.push('='.repeat((APP_OWNER_NAME + ' Cocktails').length));
+  lines.push(recipes.length + ' recipes');
   lines.push('');
-  lines.push('='.repeat(60));
+  recipes.forEach(r => {
+    lines.push(buildSingleRecipeTxt(r));
+    lines.push('');
+    lines.push('---');
+    lines.push('');
+  });
   return lines.join('\n');
 }
 
 function buildRecipesCsv() {
   function csvEsc(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
-  const header = ['Name','Status','Tags','Cook Time','Serves','Source','YouTube','Utensils','Notes','Ingredients','Method'];
+  const header = ['Name','Status','Tags','Base Spirit','Technique','Glass','Frozen','Ice','Rim','Garnish','Std Drinks','Equipment','Notes','Variation Of','Ingredients','Method'];
   const rows = [header.join(',')];
   recipes.forEach(r => {
-    // Cook time as friendly string
-    const hrs = r.hours || 0, mins = r.minutes || 0;
-    let cookTime = '';
-    if (hrs && mins) cookTime = hrs + (hrs === 1 ? ' hr' : ' hrs') + ' & ' + mins + ' mins';
-    else if (hrs) cookTime = hrs + (hrs === 1 ? ' hr' : ' hrs');
-    else if (mins) cookTime = mins + ' mins';
-
-    const srv = r.serves;
-    const srvStr = srv == null ? '' : (typeof srv === 'object' ? srv.min + '-' + srv.max : String(srv));
-
-    // Ingredients: each section on its own line within the cell
+    const parentName = r.variationOf ? (recipes.find(p => p.id === r.variationOf)?.name || '') : '';
     const ingSummary = (r.ingredients || []).map(sec => {
-      const sectionLabel = sec.title ? '=== ' + sec.title + ' ===' : '';
+      const label = sec.title ? '=== ' + sec.title + ' ===' : '';
       const items = (sec.items || []).map((item, i) => {
         const qty = [item.amount != null ? item.amount : '', item.unit || ''].filter(Boolean).join(' ');
-        return (i + 1) + '. ' + (item.name || '?') + (qty ? ' — ' + qty : '') + (item.prep ? ', ' + item.prep : '');
+        return (i + 1) + '. ' + (item.name || '?') + (qty ? ' — ' + qty : '') + (item.optional ? ' (optional)' : '');
       }).join('\n');
-      return sectionLabel ? sectionLabel + '\n' + items : items;
+      return label ? label + '\n' + items : items;
     }).join('\n\n');
-
-    // Method: numbered steps, clear section headers
     const methSummary = (r.method || []).map(sec => {
-      const sectionLabel = sec.title ? '=== ' + sec.title + ' ===' : '';
+      const label = sec.title ? '=== ' + sec.title + ' ===' : '';
       const steps = (sec.steps || []).map((s, i) => (i + 1) + '. ' + (s.text || '')).join('\n');
-      return sectionLabel ? sectionLabel + '\n' + steps : steps;
+      return label ? label + '\n' + steps : steps;
     }).join('\n\n');
-
     rows.push([
       csvEsc(r.name || ''), csvEsc(r.status || ''), csvEsc((r.tags || []).join(', ')),
-      csvEsc(cookTime), csvEsc(srvStr),
-      csvEsc(r.source || ''), csvEsc(r.youtube || ''), csvEsc((r.utensils || []).join(', ')), csvEsc(r.notes || ''),
-      csvEsc(ingSummary), csvEsc(methSummary)
+      csvEsc(r.spirit || ''), csvEsc(r.technique || ''), csvEsc(r.glass || ''),
+      csvEsc(r.glassFrozen ? 'Yes' : ''), csvEsc(r.ice || ''), csvEsc(r.rim || ''),
+      csvEsc(r.garnish || ''), csvEsc(r.standardDrinks || ''),
+      csvEsc((r.equipment || []).join(', ')), csvEsc(r.notes || ''),
+      csvEsc(parentName), csvEsc(ingSummary), csvEsc(methSummary)
     ].join(','));
   });
   return rows.join('\n');
@@ -3976,72 +3961,23 @@ function buildRecipesCsv() {
 
 function buildRecipesMd() {
   const lines = [];
-  lines.push("# Benny's Cocktails");
+  lines.push('# ' + APP_OWNER_NAME + ' Cocktails');
   lines.push('');
-  lines.push('---');
-
+  lines.push('*' + recipes.length + ' recipes*');
+  lines.push('');
   recipes.forEach(r => {
+    lines.push(buildSingleRecipeMd(r));
     lines.push('');
-    lines.push('## ' + (r.name || 'Untitled'));
-    lines.push('');
-
-    const meta = [];
-    if (r.tags?.length) meta.push('**Tags:** ' + r.tags.join(', '));
-    const hrs = r.hours || 0, mins = r.minutes || 0;
-    if (hrs || mins) {
-      const t = (hrs ? hrs + (hrs === 1 ? ' hr' : ' hrs') + ' ' : '') + (mins ? mins + ' mins' : '');
-      meta.push('**Cook time:** ' + t.trim());
-    }
-    const srv = r.serves;
-    if (srv != null) meta.push('**Serves:** ' + (typeof srv === 'object' ? srv.min + '–' + srv.max : srv));
-    if (r.source) meta.push('**Source:** ' + r.source);
-    if (meta.length) { meta.forEach(m => lines.push(m)); lines.push(''); }
-    if (r.utensils?.length) { lines.push('**Utensils:** ' + r.utensils.join(', ')); lines.push(''); }
-    if (r.notes) { lines.push('> ' + r.notes.replace(/\n/g, '\n> ')); lines.push(''); }
-
-    if (r.ingredients?.length) {
-      lines.push('### Ingredients');
-      lines.push('');
-      r.ingredients.forEach(sec => {
-        if (sec.title) { lines.push('**' + sec.title + '**'); lines.push(''); }
-        (sec.items || []).forEach(item => {
-          const qty = [item.amount != null ? item.amount : '', item.unit || ''].filter(Boolean).join(' ');
-          const prep = item.prep ? ' *('+item.prep+')*' : '';
-          lines.push('- **' + (item.name || '?') + '**' + (qty ? ' — ' + qty : '') + prep);
-          if (item.substitutes?.length) {
-            item.substitutes.forEach(s => {
-              const sqty = [s.amount != null ? s.amount : '', s.unit || ''].filter(Boolean).join(' ');
-              const snote = s.note ? ' — *' + s.note + '*' : '';
-              lines.push('  - *Sub:* ' + (s.name || '?') + (sqty ? ' — ' + sqty : '') + (s.prep ? ', ' + s.prep : '') + snote);
-            });
-          }
-        });
-        lines.push('');
-      });
-    }
-
-    if (r.method?.length) {
-      lines.push('### Method');
-      lines.push('');
-      r.method.forEach(sec => {
-        if (sec.title) { lines.push('**' + sec.title + '**'); lines.push(''); }
-        (sec.steps || []).forEach((step, i) => {
-          lines.push((i + 1) + '. ' + (step.text || ''));
-        });
-        lines.push('');
-      });
-    }
-
     lines.push('---');
+    lines.push('');
   });
-
   return lines.join('\n');
 }
 
 function buildGistBackup() {
   // A complete backup of all Gist files needed to restore from scratch
   return JSON.stringify({
-    _info: 'Benny\'s Recipes — Full Gist Backup. To restore: create a new Gist, paste each file\'s content into a file with the corresponding name.',
+    _info: APP_OWNER_NAME + ' Cocktails — Full Gist Backup. To restore: create a new Gist, paste each file\'s content into a file with the corresponding name.',
     _generated: new Date().toISOString(),
     _appVersion: APP_VERSION,
     files: {
@@ -9251,6 +9187,7 @@ function addStep(btn, stepsEl, stepData) {
   stepsEl.appendChild(wrap);
   const ta = wrap.querySelector('.step-ta');
   ta.addEventListener('input', ()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; });
+  ta.addEventListener('keydown', (e) => methodStepKeydown(e, ta));
   if (text) setTimeout(()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; }, 0);
   return wrap;
 }
