@@ -1556,119 +1556,163 @@ header{
       </div>
 
       <div class="info-pane active" id="info-pane-start">
-        <h3>Welcome to Benny's Cocktails</h3>
-        <p>A cocktail recipe book for personal use or bar staff. Recipes are stored in a GitHub Gist — a free file hosting service — so they're backed up and accessible on any device.</p>
+        <h3>Welcome</h3>
+        <p>A cocktail recipe book for personal use or bar staff. Recipes are stored in a GitHub Gist &#x2014; a free file hosting service &#x2014; so they're backed up and accessible on any device.</p>
 
-        <h3>What you'll need</h3>
-        <p>A free GitHub account and a personal access token with Gist permissions.</p>
-
-        <h3>First-time setup</h3>
+        <h3>Admin setup (full access)</h3>
+        <p>Admins can create, edit, delete, and manage all aspects of the cocktail book. To set up as admin:</p>
         <ol>
-          <li>Create a free account at <strong>github.com</strong> if you don't have one.</li>
-          <li>Go to <strong>gist.github.com</strong> and create a new Gist. Set the filename to <code>recipes.json</code> and the content to <code>[]</code>. Set it to <strong>Secret</strong>, then click <strong>Create secret gist</strong>.</li>
-          <li>Copy the long ID from the URL — that's your <strong>Gist ID</strong>.</li>
-          <li>Go to <strong>github.com/settings/tokens</strong>, click <strong>Generate new token → Classic</strong>. Tick only the <strong>gist</strong> checkbox. Copy the token.</li>
-          <li>In this app, tap the <strong>🔑 key icon</strong> in the header, paste your Gist ID and token, then tap <strong>Save &amp; connect</strong>.</li>
+          <li>Create a free account at <strong>github.com</strong>.</li>
+          <li>Go to <strong>gist.github.com</strong>, create a new Gist with filename <code>recipes.json</code> and content <code>[]</code>. Set to <strong>Secret</strong>.</li>
+          <li>Copy the Gist ID from the URL.</li>
+          <li>Generate a personal access token at <strong>github.com/settings/tokens</strong> (Classic, tick only <strong>gist</strong>).</li>
+          <li>Tap <strong>&#x1F511;</strong> &#x2192; <strong>Admin</strong> tab &#x2192; enter Gist ID and token &#x2192; <strong>Save &amp; reconnect</strong>.</li>
         </ol>
-        <div class="info-tip">Your credentials are saved only on this device in the browser's local storage. They are never sent anywhere other than GitHub's servers.</div>
+        <div class="info-tip">Credentials are saved only in this browser's local storage and sent only to GitHub's servers.</div>
+
+        <h3>Sharing with viewers</h3>
+        <p>Viewers get read-only access &#x2014; they can browse, search, filter, scale, and use substitutes but cannot edit. To set up viewer access:</p>
+        <ol>
+          <li>Tap <strong>&#x1F511;</strong> &#x2192; <strong>Admin</strong> tab &#x2192; scroll to <strong>Viewer access codes</strong>.</li>
+          <li>Create a code and label (e.g. code: "bar2025", label: "Staff").</li>
+          <li>Share the access code with the person &#x2014; they enter it on the Viewer tab.</li>
+        </ol>
+        <p>You can create multiple codes for different people and revoke any code at any time.</p>
+
+        <h3>Cloning recipes to a new database</h3>
+        <p>Use the <strong>Clone recipes</strong> tool (Admin tab, below access codes) to copy all your published recipes and settings to another Gist. Enter the target Gist ID and token, and all recipes, tags, glass icons, garnishes, and settings are copied. The recipient gets a full editable copy.</p>
+
+        <h3>Customising the app</h3>
+        <p>In <strong>Settings &#x2192; General</strong>, you can change the app name (shown in the header) and choose from 8 accent colours. These settings sync to all devices and are visible to viewers.</p>
 
         <h3>Setting up on a new device</h3>
-        <p>Each device needs to be connected separately. Tap the <strong>🔑 key icon</strong> and enter the same Gist ID and token.</p>
+        <p>Each device connects separately. Tap <strong>&#x1F511;</strong> and enter the same credentials. Your recipes sync from the Gist.</p>
       </div>
 
       <div class="info-pane" id="info-pane-cocktails">
         <h3>Adding a cocktail</h3>
-        <p>Tap <strong>+ Add cocktail</strong> in the header. Fill in the name, tags, base spirit, technique, glass type, ice type, garnish, and standard drinks.</p>
-        <h3>Ingredients and method sections</h3>
-        <p>Use the <strong>+ Ingredient</strong> and <strong>+ Step</strong> buttons to build your recipe. New ingredient rows default to <strong>ml</strong> as the unit. If you want to group items (e.g. separate a syrup from the main cocktail), tap <strong>+ Section</strong> to create a named section.</p>
-        <h3>Collapsing sections while editing</h3>
-        <p>Each ingredient or method section has a <strong>⌄ chevron</strong> in its header. Tap it to collapse into a compact summary showing each ingredient's name, amount, and unit. Useful for keeping long recipes manageable.</p>
+        <p>Tap <strong>+ Add cocktail</strong> in the header. Fill in the name, tags, base spirit, technique, glass type, ice type, rim, garnish, and standard drinks. All fields are optional except the name.</p>
+
+        <h3>Ingredients and method</h3>
+        <p>Use <strong>+ Ingredient</strong> and <strong>+ Step</strong> to build your recipe. Ingredient rows default to <strong>ml</strong>. To group items (e.g. separate a syrup), tap <strong>+ Section</strong> to create a named group.</p>
+
+        <h3>Collapsing sections</h3>
+        <p>Each ingredient or method section has a <strong>&#x2304; chevron</strong> in its header. Tap to collapse into a compact summary. Useful for long recipes.</p>
+
         <h3>Glass type and icons</h3>
-        <p>Choose a glass type from the dropdown or type a custom name. Each glass type has an icon — visible on recipe cards and in the recipe view. You can change which icon represents each glass type in <strong>Settings → Glasses</strong> by tapping the icon.</p>
+        <p>Choose a glass from the dropdown or type a custom name. Each glass type has a unique SVG icon visible on recipe cards and in the recipe view. Change icon assignments in <strong>Settings &#x2192; Glasses</strong> by tapping the icon.</p>
+
         <h3>Frozen glass</h3>
-        <p>Toggle the <strong>❄ snowflake</strong> next to the glass dropdown to mark the glass as frozen. Frozen glasses display with a blue tint.</p>
+        <p>Toggle the <strong>&#x2744; snowflake</strong> next to the glass dropdown to mark the glass as frozen. Frozen glasses display with a blue tint.</p>
+
+        <h3>Rim</h3>
+        <p>Choose a rim type from the dropdown (Salt, Sugar, Chilli, Tajin, Chocolate Dusted, Coconut). Rims display in the recipe view meta row alongside glass, technique, and ice. Manage rim options in <strong>Settings &#x2192; Rims</strong>.</p>
+
         <h3>Garnish</h3>
-        <p>The garnish field is a multi-select pill input. Type to search from your managed garnish list (organised by category), or type a custom garnish and press Enter. Multiple garnishes can be added. Custom garnishes are automatically saved to your garnish library.</p>
+        <p>The garnish field is a multi-select pill input. Type to search from your managed garnish list (organised by category: Citrus, Fruit, Herbs, Dehydrates, Flamed, Other), or type a custom garnish and press Enter. Custom garnishes are saved to your library.</p>
+
         <h3>Ice type</h3>
-        <p>Choose from common ice types (Regular, Crushed, Large Cube, Sphere, Block, Pebble, Shaved) or type a custom ice type.</p>
+        <p>Choose from common ice types (Regular, Crushed, Large Cube, Sphere, Block, Pebble, Shaved) or type a custom name.</p>
+
         <h3>Standard drinks</h3>
-        <p>Enter the number of Australian standard drinks in the cocktail. This value scales with the recipe — at ½× it shows half, and at 2×+ it shows the total with a breakdown (e.g. "4.5 (3 × 1.5) std drinks").</p>
+        <p>Enter the number of standard drinks. This scales with the recipe &#x2014; at &#xBD;&#xD7; it halves, at 2&#xD7;+ it shows the total with a breakdown (e.g. "4.5 (3 &#xD7; 1.5) std drinks").</p>
+
+        <h3>Equipment</h3>
+        <p>Add equipment items needed for the cocktail (shaker, jigger, muddler, etc.). These display in the recipe view.</p>
+
         <h3>Recipe variations</h3>
-        <p>Use the <strong>Variation of</strong> dropdown at the bottom of the edit form to link a cocktail to its parent recipe. For example, set "Spicy Margarita" as a variation of "Margarita". The parent recipe automatically shows all its variants, and each variant shows a link back to the parent.</p>
+        <p>Use the <strong>Variation of</strong> dropdown at the bottom of the edit form to link a cocktail to its parent. The parent recipe automatically shows all its variants as tappable links.</p>
+
         <h3>Drafts and publishing</h3>
-        <p>Every new recipe starts as a <strong>Draft</strong>. The current status is shown as a badge in the edit form header. Use the <strong>Publish/Unpublish</strong> button in the edit form footer to change status. Toggle the <strong>Drafts</strong> switch in the toolbar to show or hide unpublished recipes.</p>
-        <h3>Organising with tags</h3>
-        <p>Tags categorise your cocktails — things like "Bourbon", "Classic", "Sour", or "Spicy". Tags are used for filtering and grouping on the main page. Manage tag categories and order in <strong>Settings → Tags</strong>.</p>
+        <p>New recipes start as <strong>Draft</strong>. The status badge shows in the edit form header. Use <strong>Publish/Unpublish</strong> in the footer. Toggle <strong>Drafts</strong> in the toolbar to show only drafts (when on) or only published (when off).</p>
+
+        <h3>Tags</h3>
+        <p>Tags categorise cocktails (e.g. "Bourbon", "Classic", "Sour"). Used for filtering and grouping. Manage categories and order in <strong>Settings &#x2192; Tags</strong>.</p>
+
         <h3>Ticking off while making</h3>
-        <p>While viewing a recipe, tap any method step or ingredient to mark it as done — it fades with a strikethrough. Tap again to un-tick. Resets when you close the recipe.</p>
+        <p>While viewing, tap any step or ingredient to mark done &#x2014; fades with strikethrough. Tap again to undo. Resets on close.</p>
+
         <h3>Editing and deleting</h3>
-        <p>When viewing a recipe, tap the <strong>✎ pencil icon</strong> to open the edit form. The <strong>🗑 bin icon</strong> in the footer moves the recipe to the bin, where you can restore or permanently delete it.</p>
-        <h3>Undoing changes</h3>
-        <p>The <strong>↩ ↪ undo/redo buttons</strong> in the edit form header track your changes within that editing session. Changes are not undoable once saved.</p>
+        <p>Tap the <strong>&#x270E; pencil</strong> to edit. The <strong>&#x1F5D1; bin icon</strong> moves to the bin. Restore or permanently delete from the bin (accessible via the bin icon in the toolbar).</p>
+
+        <h3>Undo / redo</h3>
+        <p>The <strong>&#x21A9; &#x21AA;</strong> buttons in the edit header track changes within the editing session.</p>
       </div>
 
       <div class="info-pane" id="info-pane-scaling">
         <h3>Scaling a cocktail</h3>
-        <p>When viewing a recipe, use the <strong>½× / 1× / 2× / 3× / 4× / 5×</strong> scale buttons to adjust quantities. Ingredient amounts update proportionally, with units adjusting sensibly (e.g. 750ml becomes 0.75L).</p>
-        <h3>Ingredients that don't scale proportionally</h3>
-        <p>Some ingredients — like bitters, salt rims, or egg whites — may need specific amounts at different scales rather than simple multiplication. Tap the <strong>⊘ button</strong> next to any ingredient when editing to set exact amounts for each scale size. Leave a field blank to use proportional scaling for that size.</p>
-        <h3>Method steps that change with scale</h3>
-        <p>The same ⊘ flag works for method steps — useful when instructions differ at larger batch sizes, such as adjusting shaking technique or splitting into multiple shaker tins. If a scale override field is left blank, the original step text is shown.</p>
-        <h3>Choosing which scales are available</h3>
-        <p>When editing, tick or untick the individual scale checkboxes (½×, 2×, 3×, 4×, 5×) to control which scale buttons appear in the recipe view. The 1× button is always shown.</p>
-        <h3>Turning off scaling entirely</h3>
-        <p>The <strong>Cocktail can be scaled</strong> toggle disables scaling entirely for recipes where it doesn't apply. Scale controls won't appear in the recipe view.</p>
+        <p>Use the <strong>&#xBD;&#xD7; / 1&#xD7; / 2&#xD7; / 3&#xD7; / 4&#xD7; / 5&#xD7;</strong> scale buttons in the recipe view to adjust quantities proportionally.</p>
+
+        <h3>Scale overrides</h3>
+        <p>Some ingredients (bitters, egg whites) need specific amounts at larger scales. Tap <strong>&#x2298;</strong> next to an ingredient when editing to set exact amounts per scale. Blank fields use proportional scaling.</p>
+
+        <h3>Method step overrides</h3>
+        <p>The same <strong>&#x2298;</strong> works for method steps &#x2014; useful for instructions that change at batch sizes (e.g. splitting across multiple shaker tins).</p>
+
+        <h3>Choosing available scales</h3>
+        <p>Tick or untick individual scale checkboxes (&#xBD;&#xD7;, 2&#xD7;, 3&#xD7;, 4&#xD7;, 5&#xD7;) in the edit form to control which buttons appear. 1&#xD7; always shows.</p>
+
+        <h3>Disabling scaling</h3>
+        <p>The <strong>Cocktail can be scaled</strong> toggle disables scaling entirely. Scale controls won't appear in the view.</p>
       </div>
 
       <div class="info-pane" id="info-pane-substitutes">
         <h3>Adding substitutes</h3>
-        <p>Any ingredient can have one or more substitutes. When editing an ingredient, tap the <strong>⇄ button</strong> to open the substitutes panel. Each substitute has its own name, amount, unit, and an optional <strong>Reason</strong> field (e.g. "low ABV version", "if unavailable").</p>
+        <p>Tap the <strong>&#x21C4; button</strong> on any ingredient when editing to open the substitutes panel. Each substitute has its own name, amount, unit, and an optional <strong>Reason</strong> field.</p>
+
         <h3>Inherited fields</h3>
-        <p>A substitute's amount and unit default to the parent ingredient's values (shown as placeholder text). Leave a field blank to inherit the parent's value — useful when only the spirit changes but the quantity stays the same.</p>
-        <h3>Choosing a substitute when viewing</h3>
-        <p>Ingredients with substitutes show a <strong>⇄ button</strong> in the recipe view. Tapping it opens a chooser listing the original and all substitutes. Select one to swap that ingredient. Choose <strong>Original cocktail</strong> to revert.</p>
-        <h3>Scaling substitutes</h3>
-        <p>Substitutes support the same scale overrides as regular ingredients. Use the <strong>⊘ button</strong> within the substitute panel to set specific amounts at different scales.</p>
+        <p>A substitute's amount and unit default to the parent's values (shown as placeholder text). Leave blank to inherit &#x2014; useful when only the spirit changes but the quantity stays the same.</p>
+
+        <h3>Choosing a substitute</h3>
+        <p>Ingredients with substitutes show a <strong>&#x21C4; button</strong> in the recipe view. Tap to see the original and all alternatives. Select one to swap. Choose <strong>Original cocktail</strong> to revert.</p>
+
         <h3>Substitute groups</h3>
-        <p>Assign a <strong>Group</strong> to substitutes (e.g. "Low ABV Version", "Virgin/Mocktail", "Spicy Version"). When substitutes have groups, a <strong>Mode bar</strong> appears above the ingredients in the recipe view. Tapping a mode activates all substitutes in that group at once. Tap <strong>Original</strong> to revert all.</p>
+        <p>Assign a <strong>Group</strong> (e.g. "Low ABV Version", "Virgin/Mocktail"). When groups exist, a <strong>Mode bar</strong> appears above ingredients. Tap a mode to activate all substitutes in that group. Tap <strong>Original</strong> to revert all.</p>
+
+        <h3>Scaling substitutes</h3>
+        <p>Substitutes support scale overrides too &#x2014; use <strong>&#x2298;</strong> within the substitute panel.</p>
       </div>
 
       <div class="info-pane" id="info-pane-filter">
         <h3>Searching</h3>
-        <p>Use the search bar to find cocktails by name or tag. On mobile, tap the magnifying glass icon to show the search field.</p>
+        <p>Use the search bar to find cocktails by name. On mobile, tap the magnifying glass icon.</p>
+
         <h3>Filtering</h3>
-        <p>Tap <strong>Filter</strong> in the toolbar. Select tags across categories — within a category, any match counts (OR). Across categories, all must match (AND). Filters include Base Spirit, Standard Drinks ranges, Technique, and Glass type. Unselectable options are dimmed when they would return no results.</p>
+        <p>Tap <strong>Filter</strong> in the toolbar. Select tags within categories (OR within, AND across). Filters include tag categories, Base Spirit, Standard Drinks ranges, Technique, and Glass type. Options that would return no results are dimmed.</p>
+
         <h3>Grouping</h3>
-        <p>Tap <strong>Group</strong> to organise recipes into labelled sections. Group by any tag category, Base Spirit, Glass, Technique, or Standard Drinks. A recipe matching multiple tags in the same group appears under each heading.</p>
+        <p>Tap <strong>Group</strong> to organise recipes into sections. Group by any tag category, Base Spirit, Glass, Technique, or Standard Drinks. Recipes matching multiple tags in the same group appear under each heading.</p>
       </div>
 
       <div class="info-pane" id="info-pane-export">
-        <h3>Downloading your cocktails</h3>
-        <p>Tap the <strong>↓ icon</strong> in the header to open the export panel. Select recipes to include, then choose a format.</p>
+        <h3>Exporting cocktails</h3>
+        <p>Tap the <strong>&#x2193; icon</strong> in the header. Choose recipes to include and select a format.</p>
+
         <h3>Available formats</h3>
-        <p><strong>Text file (.txt)</strong> — plain text listing every recipe with ingredients, substitutes, and method steps.</p>
-        <p><strong>Markdown (.md)</strong> — formatted with headings and bold text. Opens in any markdown viewer, Notion, or Obsidian.</p>
-        <p><strong>Spreadsheet (.csv)</strong> — one row per recipe. Opens in Excel or Google Sheets.</p>
-        <p><strong>Interactive HTML (.html)</strong> — a self-contained file for one recipe with scale buttons and substitute toggles. Share with anyone — just open in a browser.</p>
-        <p><strong>Full Gist backup (.json)</strong> — complete snapshot of your Gist files (recipes, bin, settings). Use to migrate or restore.</p>
+        <p><strong>Text (.txt)</strong> &#x2014; plain text with ingredients, substitutes, and method.</p>
+        <p><strong>Markdown (.md)</strong> &#x2014; formatted for Notion, Obsidian, or any markdown viewer.</p>
+        <p><strong>Spreadsheet (.csv)</strong> &#x2014; one row per recipe for Excel or Google Sheets.</p>
+        <p><strong>Interactive HTML (.html)</strong> &#x2014; self-contained file with scale buttons and substitute toggles.</p>
+        <p><strong>Full backup (.json)</strong> &#x2014; complete snapshot of all Gist files.</p>
+
         <h3>Automatic backups</h3>
-        <p>Every save also writes <code>backup.txt</code> and <code>backup.csv</code> to your Gist automatically.</p>
+        <p>Every save writes <code>backup.txt</code> and <code>backup.csv</code> to your Gist.</p>
       </div>
 
       <div class="info-pane" id="info-pane-mobile">
-        <h3>Adding to your iPhone home screen</h3>
-        <ol>
-          <li>Open the app in <strong>Safari</strong> (must be Safari).</li>
-          <li>Tap the <strong>Share button</strong> (square with arrow up) at the bottom.</li>
-          <li>Tap <strong>Add to Home Screen</strong>.</li>
-          <li>Name it and tap <strong>Add</strong>. Opens full-screen from your home screen.</li>
-        </ol>
+        <h3>Adding to your home screen</h3>
+        <p><strong>iPhone:</strong> Open in Safari &#x2192; Share button &#x2192; Add to Home Screen. Opens full-screen as an app.</p>
+        <p><strong>Android:</strong> Open in Chrome &#x2192; Menu (&#x22EE;) &#x2192; Add to Home screen.</p>
 
         <h3>Connecting on a new device</h3>
-        <p>Open the app, tap <strong>🔑</strong>, enter your Gist ID and token, and tap <strong>Save &amp; connect</strong>.</p>
+        <p><strong>Admin:</strong> Tap <strong>&#x1F511;</strong> &#x2192; Admin tab &#x2192; enter Gist ID and token.</p>
+        <p><strong>Viewer:</strong> Tap <strong>&#x1F511;</strong> &#x2192; Viewer tab &#x2192; select the database and enter the access code.</p>
 
         <h3>Using without internet</h3>
-        <p>The app works offline from the last loaded data. You can browse, search, and edit. Changes sync automatically when you're back online. A banner indicates when you're offline.</p>
+        <p>The app works offline from cached data. Browse, search, and edit freely. Changes sync when you're back online. A banner shows when you're offline.</p>
+
+        <h3>Settings</h3>
+        <p>The settings panel (&#x2699; gear icon) manages: General (app name, accent colour), Tags, Units, Garnishes, Glasses, Base Spirits, Techniques, and Rims. All settings sync across devices via your Gist.</p>
       </div>
 
     </div>
@@ -1676,7 +1720,6 @@ header{
   </div>
 </div>
 
-<!-- SECTION NAME MODAL -->
 <div class="confirm-overlay" id="section-name-overlay">
   <div class="confirm-box" style="max-width:320px">
     <h3 id="section-name-title" style="font-size:0.95rem;margin-bottom:0.5rem">Section name</h3>
@@ -2106,10 +2149,28 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '5.0';
+const APP_VERSION = '5.1';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '5.1',
+    title: 'Info modal comprehensive rewrite',
+    userNotes: [
+      'Info modal completely rewritten with all current features documented',
+      'New sections: Rim, Equipment, Access codes, Clone tool, App customisation, Viewer sharing',
+      'Updated: Getting Started with admin/viewer setup paths, Mobile tab with Android instructions',
+      'Viewer info modal also updated with simplified viewer-relevant content',
+    ],
+    viewerNotes: [
+      'Help content updated with current viewer features',
+    ],
+    items: [
+      'C76: All 7 admin info tabs rewritten for v5.0 features',
+      'applyViewerInfoContent: all 4 viewer tabs rewritten',
+      'New content: rim field, equipment, access codes, clone tool, custom name/accent, database dropdown',
+    ]
+  },
   {
     version: '5.0',
     title: 'Full settings clone & dev workflow',
@@ -3188,60 +3249,52 @@ function applyAccessMode() {
 }
 
 function applyViewerInfoContent() {
-  // Getting Started — viewer version
   const startPane = document.getElementById('info-pane-start');
   if (startPane) startPane.innerHTML = `
-    <h3>Welcome to Benny's Cocktails</h3>
+    <h3>Welcome</h3>
     <p>You're viewing a shared cocktail recipe book. Browse recipes, search by name, filter by category, and scale ingredients up or down.</p>
     <h3>Connecting as a viewer</h3>
     <ol>
       <li>Tap the <strong>\ud83d\udd11 key icon</strong> in the header.</li>
       <li>Switch to the <strong>Viewer</strong> tab.</li>
-      <li>Enter the <strong>Gist ID</strong> and <strong>Viewer Code</strong> provided by the cocktail book owner.</li>
+      <li>Select the database and enter the <strong>Access Code</strong> provided by the cocktail book owner.</li>
       <li>Tap <strong>Connect as viewer</strong>.</li>
     </ol>
     <h3>Setting up on a new device</h3>
-    <p>Each device connects separately. Tap the <strong>\ud83d\udd11 key icon</strong> and enter the same Gist ID and viewer code.</p>
+    <p>Each device connects separately. Tap <strong>\ud83d\udd11</strong> and enter the same access code.</p>
     <h3>Using without internet</h3>
-    <p>The app works offline from the last loaded data. A banner indicates when you're offline.</p>`;
+    <p>The app works offline from cached data. A banner shows when you're offline.</p>`;
 
-  // Cocktails tab — viewer version
   const cocktailsPane = document.getElementById('info-pane-cocktails');
   if (cocktailsPane) cocktailsPane.innerHTML = `
     <h3>Browsing cocktails</h3>
-    <p>All cocktails are displayed as cards on the main page in alphabetical order. Tap a card to view the full recipe.</p>
+    <p>All cocktails display as cards on the main page in alphabetical order. Tap a card to view the full recipe.</p>
     <h3>Recipe view</h3>
-    <p>Each recipe shows the glass type, technique, ice type, rim, garnish, and standard drinks in the metadata row. Below that are the ingredients and method steps.</p>
+    <p>Each recipe shows glass type (with icon), technique, ice type, rim, garnish, and standard drinks. Below that are ingredients and method steps.</p>
     <h3>Ticking off while making</h3>
-    <p>Tap any method step or ingredient to mark it as done \u2014 it fades with a strikethrough. Tap again to un-tick. Resets when you close the recipe.</p>
+    <p>Tap any step or ingredient to mark done \u2014 fades with strikethrough. Tap again to undo. Resets on close.</p>
     <h3>Recipe variations</h3>
-    <p>Some cocktails are linked as variations of another. If a recipe is a variant, you\u2019ll see a link to the parent recipe at the bottom. Parent recipes show all their variants as tappable links.</p>`;
+    <p>Some cocktails are linked as variations. Parent recipes show all variants as tappable links. Variants show a link back to the parent.</p>`;
 
-  // Scaling tab — viewer version
   const scalePane = document.getElementById('info-pane-scaling');
   if (scalePane) scalePane.innerHTML = `
     <h3>Scaling a cocktail</h3>
-    <p>When viewing a recipe, use the <strong>\u00bd\u00d7 / 1\u00d7 / 2\u00d7 / 3\u00d7 / 4\u00d7 / 5\u00d7</strong> scale buttons to adjust quantities. Ingredient amounts update proportionally.</p>
+    <p>Use the <strong>\u00bd\u00d7 / 1\u00d7 / 2\u00d7 / 3\u00d7 / 4\u00d7 / 5\u00d7</strong> scale buttons to adjust quantities proportionally.</p>
     <h3>Scale overrides</h3>
-    <p>Some ingredients may show specific amounts at certain scales rather than simple multiplication. For example, bitters or egg whites might have a fixed amount at larger scales. This is indicated automatically \u2014 the amount shown is always the correct one for that scale.</p>
+    <p>Some ingredients show specific amounts at certain scales rather than simple multiplication. The amount shown is always the correct one for that scale.</p>
     <h3>Method steps at different scales</h3>
-    <p>Some method steps may change at larger scales. For example, a recipe might specify splitting into multiple shaker tins at 3\u00d7 or above. The step text updates automatically when you change the scale.</p>
+    <p>Some steps may change at larger scales. The text updates automatically when you change the scale.</p>
     <h3>Standard drinks</h3>
-    <p>If a recipe shows standard drinks, this value scales proportionally. At 2\u00d7 and above, it shows the total with a breakdown (e.g. \u201c3.0 (2 \u00d7 1.5) std drinks\u201d).</p>`;
+    <p>Standard drinks scale proportionally. At 2\u00d7+, it shows the total with a breakdown (e.g. \u201c3.0 (2 \u00d7 1.5) std drinks\u201d).</p>`;
 
-  // Substitutes tab — viewer version
   const subsPane = document.getElementById('info-pane-substitutes');
   if (subsPane) subsPane.innerHTML = `
     <h3>Choosing a substitute</h3>
-    <p>Some ingredients have substitutes available. These show a <strong>\u21c4 button</strong> next to the ingredient in the recipe view. Tap it to see alternatives and select one to swap in.</p>
+    <p>Some ingredients have substitutes. These show a <strong>\u21c4 button</strong> next to the ingredient. Tap to see alternatives and select one to swap in.</p>
     <h3>Substitute groups</h3>
-    <p>When substitutes are grouped (e.g. \u201cLow ABV Version\u201d, \u201cVirgin/Mocktail\u201d), a <strong>Mode bar</strong> appears above the ingredients. Tap a mode to activate all substitutes in that group at once. Tap <strong>Original</strong> to revert.</p>
+    <p>When substitutes are grouped (e.g. \u201cLow ABV Version\u201d), a <strong>Mode bar</strong> appears above ingredients. Tap a mode to activate all substitutes in that group. Tap <strong>Original</strong> to revert.</p>
     <h3>Scaling substitutes</h3>
-    <p>Substitutes scale proportionally just like regular ingredients when you change the scale.</p>`;
-
-  // Filter tab — keep as-is (viewers can filter)
-  // Export tab — already hidden with admin-only class
-  // Mobile tab — keep as-is (viewers benefit from this)
+    <p>Substitutes scale proportionally just like regular ingredients.</p>`;
 }
 
 function init() {
