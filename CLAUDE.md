@@ -19,19 +19,21 @@ bennys-cocktails/
 ## Development Workflow
 
 ### Branch Strategy
-- `main` — production. Always stable. Friends use this. Never commit directly to main.
-- `feature/<name>` — all development work happens here (e.g. `feature/c141-folders`)
-- When Benny approves a feature: merge PR to main → push to prod → push to remote
+- `main` — the working branch. `dev.html` here is the live dev/test file. Push regularly.
+- `index.html` on `main` is the protected prod file — only updated at "push to prod" time.
+- Feature branches (`feature/<name>`) are optional for large multi-session work, but must be
+  merged back to `main` before Benny can test on iPhone via GitHub Pages.
 
 ### Making Changes
-1. All changes are made to `dev.html` on a feature branch — NEVER edit index.html directly
-2. Benny tests dev.html on desktop + iPhone (frequently uses incognito windows for viewer testing)
-3. When Benny says "push to prod" → Claude:
-   a. Merges the feature branch PR to main
-   b. Produces `index.html` from `dev.html` — swapping BAKED_GIST_ID only
-   c. Commits both files to main
-   d. Pushes to origin/main (`git push origin main`)
-4. The ONLY difference between the two files is the BAKED_GIST_ID constant
+1. All changes are made to `dev.html` — NEVER edit index.html directly
+2. Push `dev.html` changes to `main` regularly so Benny can test via GitHub Pages on iPhone
+3. Benny tests at: https://benjamin-tattersall.github.io/bennys_cocktails/dev.html
+   (desktop + iPhone, frequently uses incognito windows for viewer testing)
+4. When Benny says "push to prod" → Claude:
+   a. Produces `index.html` from `dev.html` — swapping BAKED_GIST_ID only
+   b. Commits both files to main
+   c. Pushes to origin/main (`git push origin main`)
+5. The ONLY difference between the two files is the BAKED_GIST_ID constant
 
 ### Delivery Checklist (EVERY change)
 - [ ] Version bump: update `const APP_VERSION`
