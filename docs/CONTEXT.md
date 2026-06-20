@@ -146,16 +146,11 @@ Dev/prod two-file setup with different baked Gist IDs. Clone tool enhanced with 
 
 ## Backlog — Prioritised
 
-### Immediate Fixes
+### Auth & Database Overhaul — ON HOLD
 | Task | Description |
 |---|---|
-| **C140** | MD export: spacing between recipes not visible in rendered view — needs different approach (horizontal rule or HTML `<br>`). Ingredients header (`###`) still shows underline + larger font than Method header — both should match. |
-
-### PRIORITY: Auth & Database Overhaul
-| Task | Description |
-|---|---|
-| **C138** | **Auth system overhaul** — Replace GitHub tokens with proper 3rd-party auth (email/password login). Current system requires sharing GitHub tokens which gives access to ALL Gists on that account. Security risk: Benny's Gist ID is baked into the code, and tokens are shared. End goal: users have secure individual logins, no GitHub knowledge required. Consider: Supabase Auth, Firebase Auth, Auth0. |
-| **C139** | **Database migration** — Move from GitHub Gist to secure cloud-hosted database. Users should have private storage only they can access. Eliminate "create a Gist" friction. Consider: Supabase (PostgreSQL + row-level security), Firebase (Firestore), PocketBase. Migration path needed for existing Gist users. |
+| **C138** | **Auth system overhaul** — Replace GitHub tokens with proper 3rd-party auth. PARKED: Benny is still deciding on the overall architecture direction and whether the public GitHub repo model has a sustainable future. Do not begin implementation until a direction is confirmed. |
+| **C139** | **Database migration** — Move from GitHub Gist to cloud-hosted database. PARKED: same dependency as C138. Consider: Supabase, Firebase, PocketBase, Cloudflare Workers + KV. Migration path needed for existing Gist users. |
 
 ### Tier 1 — Data Model
 | Task | Description | Effort |
@@ -193,7 +188,7 @@ Dev/prod two-file setup with different baked Gist IDs. Clone tool enhanced with 
 | HTML export: standalone viewer loads, recipes clickable, scaling works | ✅ VERIFIED |
 | Enter=new step in method | NEEDS TEST |
 | CSV em dash display in Excel | NEEDS TEST |
-| MD formatting (spacing, header consistency) | NEEDS FIX (C140) |
+| MD formatting (spacing, header consistency) | ✅ FIXED v5.5 (C140 resolved) |
 | 16-char app name iPhone | ✅ VERIFIED |
 | Desktop app name stays full size | ✅ VERIFIED |
 | Settings tabs functional after border changes | NEEDS TEST |

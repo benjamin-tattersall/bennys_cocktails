@@ -18,33 +18,42 @@ bennys-cocktails/
 
 ## Development Workflow
 
+### Branch Strategy
+- `main` — production. Always stable. Friends use this. Never commit directly to main.
+- `feature/<name>` — all development work happens here (e.g. `feature/c141-folders`)
+- When Benny approves a feature: merge PR to main → push to prod → push to remote
+
 ### Making Changes
-1. All changes are made to `dev.html` first — NEVER edit index.html directly
+1. All changes are made to `dev.html` on a feature branch — NEVER edit index.html directly
 2. Benny tests dev.html on desktop + iPhone (frequently uses incognito windows for viewer testing)
-3. When Benny says "push to prod" → produce BOTH files:
-   - `index.html` with BAKED_GIST_ID = `46caec02a3b745a1554de6553a390226`
-   - `dev.html` with BAKED_GIST_ID = `760345d2785176782856adb3325c2b74`
+3. When Benny says "push to prod" → Claude:
+   a. Merges the feature branch PR to main
+   b. Produces `index.html` from `dev.html` — swapping BAKED_GIST_ID only
+   c. Commits both files to main
+   d. Pushes to origin/main (`git push origin main`)
 4. The ONLY difference between the two files is the BAKED_GIST_ID constant
 
 ### Delivery Checklist (EVERY change)
-- [ ] Version bump: update `const APP_VERSION` 
+- [ ] Version bump: update `const APP_VERSION`
 - [ ] CHANGELOG entry with `userNotes` array AND `viewerNotes` array (even if empty `[]`)
 - [ ] Parse test: extract JS from `<script>` block, wrap in IIFE, run `node --check`
 - [ ] Consider dual-view impact (admin vs viewer)
 - [ ] Mark new UI elements with `class="admin-only"` where appropriate
 - [ ] Update `docs/CONTEXT.md` with changes, backlog updates, testing notes
-- [ ] When pushing to prod: produce BOTH index.html and dev.html
+- [ ] When pushing to prod: produce BOTH index.html and dev.html, then `git push origin main`
 
 ### Parse Test Command
 ```bash
-# Extract JS, wrap in IIFE, check syntax
+# Windows-safe: write temp file to repo dir (Bash tool context)
 node -e "
 const fs = require('fs');
-const c = fs.readFileSync('dev.html', 'utf8');
+const c = fs.readFileSync('C:/Repos/bennys_cocktails/dev.html', 'utf8');
 const js = c.slice(c.indexOf('<script>') + 8, c.lastIndexOf('</script>'));
-fs.writeFileSync('/tmp/pf.js', '(function() {\n' + js + '\n});\n');
-" && node --check /tmp/pf.js && echo "PASS" || echo "FAIL"
+fs.writeFileSync('C:/Repos/bennys_cocktails/pf_tmp.js', '(function() {\n' + js + '\n});\n');
+" && node --check "C:/Repos/bennys_cocktails/pf_tmp.js" && echo "PASS" || echo "FAIL"
+rm -f "C:/Repos/bennys_cocktails/pf_tmp.js"
 ```
+Note: `/tmp` does not exist on this Windows setup — always use the repo dir for the temp file.
 
 ## Key Architecture
 
