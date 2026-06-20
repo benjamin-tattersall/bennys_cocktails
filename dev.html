@@ -2149,10 +2149,25 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '5.4';
+const APP_VERSION = '5.5';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '5.5',
+    title: 'Export polish',
+    userNotes: [
+      'HTML export: removed horizontal lines under ingredients',
+      'HTML export: removed variation/variant sections (simplified standalone viewer)',
+      'Markdown: more spacing between recipes, subtitles no longer produce underlines',
+    ],
+    viewerNotes: [],
+    items: [
+      'HTML: removed border-bottom from .ing-view-row td',
+      'HTML: removed variations rendering block from renderView',
+      'MD: 3 blank lines between recipes, ## changed to ### for Ingredients/Method',
+    ]
+  },
   {
     version: '5.4',
     title: 'HTML export complete rewrite',
@@ -3811,7 +3826,7 @@ function buildSingleRecipeMd(r) {
     });
   }
   if (r.method?.length) {
-    lines.push('## Method'); lines.push('');
+    lines.push('### Method'); lines.push('');
     r.method.forEach(sec => {
       if (sec.title) { lines.push('**' + sec.title + '**'); lines.push(''); }
       (sec.steps || []).forEach((s, i) => {
@@ -3885,7 +3900,7 @@ body{font-family:'Instrument Sans',sans-serif;background:var(--cream);color:var(
 .view-sec{margin-bottom:1.5rem}
 .vsec-lbl{font-family:'Playfair Display',serif;font-size:0.9rem;font-weight:500;margin-bottom:0.6rem;color:var(--ink)}
 .ing-table{width:100%;border-collapse:collapse}
-.ing-view-row td{padding:5px 8px;font-size:0.84rem;border-bottom:1px solid var(--border-mid,rgba(255,255,255,.04))}
+.ing-view-row td{padding:5px 8px;font-size:0.84rem}
 .ing-view-row:hover{background:rgba(255,255,255,.02)}
 .ing-view-row.done{opacity:.35;text-decoration:line-through}
 .ing-sec-title-view{font-size:0.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-muted);padding:10px 8px 4px!important;border:none!important}
@@ -4148,23 +4163,7 @@ function renderView() {
   if (r.notes) {
     html += '<div class="view-sec"><div class="vsec-lbl">Notes</div><p style="font-size:0.85rem;line-height:1.7;color:var(--ink-mid)">' + esc(r.notes) + '</p></div>';
   }
-  // Variations
-  var variants = recipes.filter(function(v) { return v.variationOf === r.id; });
-  if (variants.length || r.variationOf) {
-    var varHtml = '<div class="view-sec"><div class="vsec-lbl">Variations</div>';
-    if (r.variationOf) {
-      var parent = recipes.find(function(p) { return p.id === r.variationOf; });
-      if (parent) varHtml += '<p style="font-size:0.84rem;color:var(--ink-mid);margin-bottom:0.3rem">Variation of <a href="#" onclick="event.preventDefault();viewRecipe(' + parent.id + ')" style="color:var(--accent-text);text-decoration:underline">' + esc(parent.name) + '</a></p>';
-    }
-    if (variants.length) {
-      varHtml += variants.map(function(v) {
-        return '<a href="#" onclick="event.preventDefault();viewRecipe(' + v.id + ')" style="display:inline-block;font-size:0.82rem;color:var(--accent-text);margin-right:0.8rem;text-decoration:underline">' + esc(v.name) + '</a>';
-      }).join('');
-    }
-    varHtml += '</div>';
-    html += varHtml;
-  }
-  document.getElementById('vbody').innerHTML = html;
+    document.getElementById('vbody').innerHTML = html;
 }
 renderCards();
 <\/script>
@@ -4233,7 +4232,7 @@ function buildRecipesMd() {
   lines.push('');
   sorted.forEach((r, i) => {
     lines.push(buildSingleRecipeMd(r));
-    if (i < sorted.length - 1) lines.push('');
+    if (i < sorted.length - 1) { lines.push(''); lines.push(''); lines.push(''); }
   });
   return lines.join('\n');
 }
