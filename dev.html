@@ -418,6 +418,10 @@ header{
 }
 .tsug:hover{background:var(--accent-light);color:var(--accent-text);border-color:var(--accent)}
 .tsug.already{opacity:.35;cursor:default;pointer-events:none}
+.ing-tag-sugs{display:none;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px;min-height:0}
+.ing-tag-sugs.show{display:flex}
+.ing-tag-sugs .its-label{font-size:0.68rem;font-weight:500;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-faint);white-space:nowrap}
+.ing-tag-sugs .tsug{font-size:0.72rem;padding:2px 8px}
 
 /* ── WHEEL PANELS ── */
 .wheel-panel{
@@ -1339,6 +1343,7 @@ header{
           </div>
           <div class="tag-sugs" id="tag-sugs"></div>
         </div>
+        <div id="ing-tag-sugs" class="ing-tag-sugs"></div>
       </div>
 
       <div class="f2">
@@ -2149,10 +2154,26 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '5.5';
+const APP_VERSION = '5.6';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '5.6',
+    title: 'Ingredient tag suggestions (C83)',
+    userNotes: [
+      'Edit form now suggests Spirit tags based on your ingredient names — tap a chip to add the tag without typing',
+      'Suggestions appear automatically as you add ingredients and disappear once the tag is already applied',
+      'Search now matches ingredient names — find a recipe by searching any ingredient, even without a tag',
+    ],
+    viewerNotes: [],
+    items: [
+      'C83: refreshIngTagSugs() scans ingredient name inputs against TAG_GROUPS[Spirit], shows untagged matches as chips below tags box',
+      'C83: hooks into renderFormTags() and ingNameInput() so suggestions stay live while editing',
+      'matchesFilters: search query now checks r.ingredients[].items[].name (ingredient name search)',
+      'SPIRIT_PARENTS stub added for C130 hierarchy (no UI yet)',
+    ]
+  },
   {
     version: '5.5',
     title: 'Export polish',
@@ -3124,6 +3145,7 @@ let editId = null;
 let pendingSync = [];
 let formTags = [];
 let formGarnishes = [];
+let SPIRIT_PARENTS = {}; // reserved for C130: maps tag name → parent tag name (e.g. 'Bourbon' → 'Whiskey')
 const BAKED_GIST_ID = '760345d2785176782856adb3325c2b74';
 let gistId = '', ghToken = '';
 let VIEW_ONLY = false;
@@ -6404,7 +6426,7 @@ function getActiveTagsByGroup() {
 
 function matchesFilters(r) {
   const q = document.getElementById('search').value.toLowerCase().trim();
-  if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q))) return false;
+  if (q && !r.name?.toLowerCase().includes(q) && !r.tags?.some(t=>t.toLowerCase().includes(q)) && !r.ingredients?.some(s=>s.items?.some(i=>i.name?.toLowerCase().includes(q)))) return false;
 
   // Tags: OR within group, AND between groups
   if (activeTags.size > 0) {
@@ -8299,6 +8321,26 @@ function renderFormTags() {
     pill.innerHTML = `${esc(tag)}<button onclick="removeFormTag('${tag.replace(/'/g,"\\'")}')" type="button">×</button>`;
     box.insertBefore(pill, input);
   });
+  refreshIngTagSugs();
+}
+
+function refreshIngTagSugs() {
+  const el = document.getElementById('ing-tag-sugs');
+  if (!el) return;
+  const spiritTags = TAG_GROUPS['Spirit'] || [];
+  const ingNames = [];
+  document.querySelectorAll('#ing-builder .ing-desktop-row .ing-name-wrap input[type="text"], #ing-builder .ing-name-mobile').forEach(inp => {
+    const v = inp.value.trim();
+    if (v) ingNames.push(v);
+  });
+  const suggestions = spiritTags.filter(tag =>
+    ingNames.some(n => n.toLowerCase() === tag.toLowerCase()) &&
+    !formTags.some(ft => ft.toLowerCase() === tag.toLowerCase())
+  );
+  if (!suggestions.length) { el.classList.remove('show'); el.innerHTML = ''; return; }
+  el.innerHTML = `<span class="its-label">From ingredients:</span>` +
+    suggestions.map(t => `<span class="tsug" onclick="addFormTag('${t.replace(/'/g, "\\'")}')">${esc(t)}</span>`).join('');
+  el.classList.add('show');
 }
 
 function addFormTag(raw) {
@@ -9323,6 +9365,7 @@ function ingNameInput(input) {
     `<div class="ing-name-sug" onmousedown="pickIngName(this,'${esc(m)}')">${esc(m)}</div>`
   ).join('');
   sugsEl.classList.add('show');
+  refreshIngTagSugs();
 }
 
 function pickIngName(el, name) {
