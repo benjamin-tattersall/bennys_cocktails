@@ -2149,10 +2149,30 @@ let CUSTOM_TAG_GROUPS = {};
 const WHEEL_ITEMS = {};
 
 // ── VERSION ───────────────────────────────────────────────────────────────
-const APP_VERSION = '5.2';
+const APP_VERSION = '5.3';
 
 // Changelog: add a new entry at the top for each version
 const CHANGELOG = [
+  {
+    version: '5.3',
+    title: 'Export format fixes',
+    userNotes: [
+      'All exports now alphabetically sorted',
+      'CSV: em dash and special characters display correctly in Excel',
+      'Markdown: notes labeled, cleaner formatting without excessive dividers',
+      'HTML viewer: shows cocktail meta (technique, glass, ice, rim, garnish, std drinks) instead of serves/time/source',
+      'HTML viewer: uses dynamic app name instead of hardcoded',
+      'Removed YouTube section from HTML export',
+    ],
+    viewerNotes: [],
+    items: [
+      'C75: All bulk exports sort alphabetically',
+      'C75: CSV UTF-8 BOM prepended for Excel compatibility',
+      'C75: MD notes use **Notes:** label instead of bare blockquote',
+      'C75: IIFE viewer meta updated for cocktail fields',
+      'C75: IIFE viewer title uses APP_OWNER_NAME',
+    ]
+  },
   {
     version: '5.2',
     title: 'Enter=new step & export updates',
@@ -3752,7 +3772,7 @@ function buildSingleRecipeMd(r) {
   if (r.standardDrinks) meta.push('**Standard Drinks:** ' + r.standardDrinks);
   if (meta.length) { lines.push(meta.join(' | ')); lines.push(''); }
   if (r.equipment?.length) lines.push('**Equipment:** ' + r.equipment.join(', '));
-  if (r.notes) { lines.push(''); lines.push('> ' + r.notes); }
+  if (r.notes) { lines.push(''); lines.push('**Notes:** ' + r.notes); }
   if (r.variationOf) {
     const parent = recipes.find(p => p.id === r.variationOf);
     if (parent) lines.push('*Variation of: ' + parent.name + '*');
@@ -3919,7 +3939,8 @@ function buildReadableBackup() {
   lines.push('='.repeat((APP_OWNER_NAME + ' Cocktails').length));
   lines.push(recipes.length + ' recipes');
   lines.push('');
-  recipes.forEach(r => {
+  const sorted = [...recipes].sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  sorted.forEach(r => {
     lines.push(buildSingleRecipeTxt(r));
     lines.push('');
     lines.push('---');
@@ -3932,7 +3953,8 @@ function buildRecipesCsv() {
   function csvEsc(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
   const header = ['Name','Status','Tags','Base Spirit','Technique','Glass','Frozen','Ice','Rim','Garnish','Std Drinks','Equipment','Notes','Variation Of','Ingredients','Method'];
   const rows = [header.join(',')];
-  recipes.forEach(r => {
+  const sorted = [...recipes].sort((a,b) => (a.name||'').localeCompare(b.name||''));
+  sorted.forEach(r => {
     const parentName = r.variationOf ? (recipes.find(p => p.id === r.variationOf)?.name || '') : '';
     const ingSummary = (r.ingredients || []).map(sec => {
       const label = sec.title ? '=== ' + sec.title + ' ===' : '';
@@ -3960,16 +3982,15 @@ function buildRecipesCsv() {
 }
 
 function buildRecipesMd() {
+  const sorted = [...recipes].sort((a,b) => (a.name||'').localeCompare(b.name||''));
   const lines = [];
   lines.push('# ' + APP_OWNER_NAME + ' Cocktails');
   lines.push('');
-  lines.push('*' + recipes.length + ' recipes*');
+  lines.push('*' + sorted.length + ' recipes*');
   lines.push('');
-  recipes.forEach(r => {
+  sorted.forEach((r, i) => {
     lines.push(buildSingleRecipeMd(r));
-    lines.push('');
-    lines.push('---');
-    lines.push('');
+    if (i < sorted.length - 1) lines.push('');
   });
   return lines.join('\n');
 }
@@ -5827,7 +5848,7 @@ function triggerDownload() {
     if (wantTxt)  downloadFile('recipes-backup.txt',  buildReadableBackup(),       'text/plain');
     if (wantMd)   downloadFile('recipes-backup.md',   buildRecipesMd(),            'text/markdown');
     if (wantHtml) downloadFile('recipes-viewer.html', buildBulkViewerHtml(subset), 'text/html');
-    if (wantCsv) downloadFile('recipes-backup.csv', buildRecipesCsv(),     'text/csv');
+    if (wantCsv) downloadFile('recipes-backup.csv', '\uFEFF' + buildRecipesCsv(), 'text/csv;charset=utf-8');
   } finally {
     recipes = origRecipes;
   }
